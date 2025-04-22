@@ -1,5 +1,6 @@
 from rest_framework import viewsets, permissions
 from .models import User
+from lib.pagination import CustomUserPagination
 from .permissions import IsAdmin, IsAdminOrManager
 from .serializers import UserSerializer, RegisterSerializer, LoginSerializer
 from rest_framework.permissions import IsAuthenticated
@@ -8,6 +9,7 @@ from rest_framework.permissions import IsAuthenticated
 class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
     permission_classes = [IsAuthenticated]
+    pagination_class = CustomUserPagination
 
     def get_serializer_class(self):
         if self.action in ['list', 'retrieve']:
