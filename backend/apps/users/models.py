@@ -5,7 +5,7 @@ from lib.enum import Roles
 
 
 class User(AbstractUser):
-    role = models.CharField(max_length=20, choices=Roles, default='TEAM_MEMBER')
+    role = models.CharField(max_length=20, choices=Roles, default="TEAM_MEMBER")
 
     def __str__(self):
         return f"{self.username} ({self.role})"

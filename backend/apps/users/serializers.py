@@ -13,8 +13,8 @@ class RegisterSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ['username', 'password', 'email', 'role']
-        extra_kwargs = {'password': {'write_only': True}}
+        fields = ["username", "password", "email", "role"]
+        extra_kwargs = {"password": {"write_only": True}}
 
 
 class LoginSerializer(serializers.Serializer):
@@ -24,12 +24,12 @@ class LoginSerializer(serializers.Serializer):
     refresh = serializers.CharField(read_only=True)
 
     def validate(self, data):
-        user = authenticate(username=data['username'], password=data['password'])
+        user = authenticate(username=data["username"], password=data["password"])
         if user and user.is_active:
             refresh = RefreshToken.for_user(user)
             return {
-                'access': str(refresh.access_token),
-                'refresh': str(refresh),
+                "access": str(refresh.access_token),
+                "refresh": str(refresh),
             }
         raise serializers.ValidationError("Invalid credentials")
 
@@ -40,12 +40,12 @@ class LoginSerializer(serializers.Serializer):
 class UserSerializer(serializers.ModelSerializer):
 
     def update(self, instance, validated_data):
-        instance.email = validated_data.get('email', instance.email)
-        instance.username = validated_data.get('username', instance.username)
-        instance.role = validated_data.get('role', instance.role)
+        instance.email = validated_data.get("email", instance.email)
+        instance.username = validated_data.get("username", instance.username)
+        instance.role = validated_data.get("role", instance.role)
         instance.save()
         return instance
 
     class Meta:
         model = User
-        fields = ['id', 'username', 'email', 'role']
+        fields = ["id", "username", "email", "role"]

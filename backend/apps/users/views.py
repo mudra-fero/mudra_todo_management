@@ -12,20 +12,20 @@ class UserViewSet(viewsets.ModelViewSet):
     pagination_class = CustomUserPagination
 
     def get_serializer_class(self):
-        if self.action in ['list', 'retrieve']:
+        if self.action in ["list", "retrieve"]:
             return UserSerializer
-        if self.action == 'update':
+        if self.action == "update":
             return UserSerializer
-        elif self.action == 'create':
+        elif self.action == "create":
             return RegisterSerializer
         return False
 
     def get_permissions(self):
-        if self.action in ['list', 'retrieve', 'delete']:
+        if self.action in ["list", "retrieve", "delete"]:
             return [IsAdmin()]
-        elif self.action == 'update':
+        elif self.action == "update":
             return [IsAdminOrManager()]
-        elif self.action == 'create':
+        elif self.action == "create":
             return [permissions.AllowAny()]
         return [permissions.IsAuthenticated()]
 
