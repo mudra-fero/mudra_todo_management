@@ -14,6 +14,7 @@ from .serializers import (
     CollaboratorTaskSerializer,
 )
 from .permissions import IsManagerOrAdmin, IsAssignedOrPrivileged
+from ..users.models import User
 
 
 class TaskViewSet(viewsets.ModelViewSet):
@@ -47,12 +48,9 @@ class TaskViewSet(viewsets.ModelViewSet):
             return [IsAuthenticated(), IsAssignedOrPrivileged()]
         return [IsAuthenticated()]
 
-    @action(
-        detail=True,
-        methods=["post"],
-        permission_classes=[IsAuthenticated, IsManagerOrAdmin],
-    )
+    @action(detail=True, methods=["post"])
     def assign(self, request, pk=None):
+        print("data = ", request.data)
         task = self.get_object()
         serializer = AssignTaskSerializer(data=request.data, context={"task": task})
         serializer.is_valid(raise_exception=True)
@@ -61,11 +59,7 @@ class TaskViewSet(viewsets.ModelViewSet):
             {"detail": "Task assigned successfully."}, status=status.HTTP_200_OK
         )
 
-    @action(
-        detail=True,
-        methods=["post"],
-        permission_classes=[IsAuthenticated, IsManagerOrAdmin],
-    )
+    @action(detail=True, methods=["post"])
     def collaborators(self, request, pk=None):
         task = self.get_object()
         serializer = CollaboratorTaskSerializer(
@@ -74,5 +68,5 @@ class TaskViewSet(viewsets.ModelViewSet):
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return Response(
-            {"detail": "Collaborators updated successfully."}, status=status.HTTP_200_OK
+            {"detail": "Task collaborated successfully."}, status=status.HTTP_200_OK
         )

@@ -8,7 +8,6 @@ from rest_framework.permissions import IsAuthenticated
 
 class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
-    permission_classes = [IsAuthenticated]
     pagination_class = CustomUserPagination
 
     def get_serializer_class(self):
@@ -21,6 +20,7 @@ class UserViewSet(viewsets.ModelViewSet):
         return False
 
     def get_permissions(self):
+        print(self.action)
         if self.action in ["list", "retrieve", "delete"]:
             return [IsAdmin()]
         elif self.action == "update":
