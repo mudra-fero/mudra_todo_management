@@ -2,6 +2,7 @@ from django.contrib.auth import authenticate
 from rest_framework import serializers
 from rest_framework_simplejwt.tokens import RefreshToken
 
+from apps.tasks.serializers import TaskSerializer
 from apps.users.models import User
 
 
@@ -38,14 +39,29 @@ class LoginSerializer(serializers.Serializer):
 
 
 class UserSerializer(serializers.ModelSerializer):
+    assigned_tasks = serializers.SerializerMethodField()
+    collaborated_tasks = serializers.SerializerMethodField()
+
+    def get_assigned_tasks(self, obj):
+        return obj.assigned_tasks.count()
+
+    def get_collaborated_tasks(self, obj):
+        return obj.collaborated_tasks.count()
 
     def update(self, instance, validated_data):
-        instance.email = validated_data.get("email", instance.email)
-        instance.username = validated_data.get("username", instance.username)
-        instance.role = validated_data.get("role", instance.role)
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
         instance.save()
         return instance
 
     class Meta:
         model = User
-        fields = ["id", "username", "email", "role"]
+        fields = [
+            "id",
+            "username",
+            "email",
+            "role",
+            "assigned_tasks",
+            "collaborated_tasks",
+        ]
+        read_only_fields = ["id", "assigned_tasks", "collaborated_tasks"]

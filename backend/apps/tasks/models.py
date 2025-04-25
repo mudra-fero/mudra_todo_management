@@ -77,3 +77,32 @@ class Task(models.Model):
 
     def __str__(self):
         return self.title
+
+
+class Comment(models.Model):
+    task = models.ForeignKey(Task, related_name="comments", on_delete=models.CASCADE)
+    author = models.ForeignKey(
+        settings.AUTH_USER_MODEL, related_name="task_comments", on_delete=models.CASCADE
+    )
+    content = models.TextField(verbose_name="Comment Content")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.author.username} on {self.task.title}"
+
+
+class TaskHistory(models.Model):
+    task = models.ForeignKey(
+        Task, related_name="task_history", on_delete=models.CASCADE
+    )
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        related_name="user_history",
+        on_delete=models.SET_NULL,
+        null=True,
+    )
+    action = models.TextField()
+    timestamp = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"History for {self.task.title} by {self.user}"

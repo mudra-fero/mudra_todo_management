@@ -1,9 +1,8 @@
 from rest_framework import viewsets, permissions
 from .models import User
-from lib.pagination import CustomUserPagination
+from .pagination import CustomUserPagination
 from .permissions import IsAdmin, IsAdminOrManager
 from .serializers import UserSerializer, RegisterSerializer, LoginSerializer
-from rest_framework.permissions import IsAuthenticated
 
 
 class UserViewSet(viewsets.ModelViewSet):
@@ -20,7 +19,6 @@ class UserViewSet(viewsets.ModelViewSet):
         return False
 
     def get_permissions(self):
-        print(self.action)
         if self.action in ["list", "retrieve", "delete"]:
             return [IsAdmin()]
         elif self.action == "update":
