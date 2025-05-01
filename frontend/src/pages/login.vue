@@ -1,7 +1,7 @@
 <script setup>
 import { reactive, ref } from 'vue'
 import useVuelidate from '@vuelidate/core'
-import { required, email as emailValidator } from '@vuelidate/validators'
+import { required } from '@vuelidate/validators'
 import { authenticationservice } from '@/services/authentication'
 import axios from "axios";
 import { useRouter } from 'vue-router';
@@ -10,13 +10,11 @@ const router = useRouter();
 const registerForm = reactive({
     userName: null,
     password: null,
-    email: null,
 })
 
 const rules = reactive({
     username: { required },
     password: { required },
-    email: { required, email: emailValidator },
 })
 const loading = ref(false)
 const isPasswordVisible = ref(false)
@@ -35,10 +33,12 @@ const submit = async () => {
     showError.value = false
     loading.value = true
 
-    const response = axios.post(`http://127.0.0.1:8000/users/`, registerForm)
+    const response = axios.post(`http://127.0.0.1:8000/login/`, registerForm)
         .then(function (response) {
             loading.value = false
-            router.push('/login')
+            localStorage.setItem('access_token', response.data.access);
+            localStorage.setItem('refresh_token', response.data.refresh);
+            router.push('/users')
         })
         .catch(function (error) {
             loading.value = false
@@ -57,7 +57,7 @@ const submit = async () => {
             </template>
             <v-card-item class="d-flex justify-center">
                 <v-card-title>Welcome!</v-card-title>
-                <v-card-subtitle>Please Register</v-card-subtitle>
+                <v-card-subtitle>Please Login</v-card-subtitle>
             </v-card-item>
 
             <v-card-text>
@@ -65,10 +65,6 @@ const submit = async () => {
                     <v-alert v-if="showError" type="error" icon="$error" class="mb-4">
                         Please fill all fields correctly.
                     </v-alert>
-
-                    <v-label class="mb-3 mx-1">Email</v-label>
-                    <v-text-field v-model="registerForm.email" placeholder="Enter email" :error="v$.email.$error"
-                        :error-messages="v$.email.$errors.map(e => e.$message)" />
 
                     <v-label class="mb-3 mx-1">Username</v-label>
                     <v-text-field v-model="registerForm.username" placeholder="Enter username"
@@ -86,16 +82,16 @@ const submit = async () => {
                     </v-text-field>
 
                     <v-btn type="submit" color="#3E4E3C" block class="mt-4">
-                        Register
+                        Login
                     </v-btn>
                 </v-form>
 
                 <v-card-text class="mt-4">
-                    or if you have registered already then
+                    or if you have not registered then
                 </v-card-text>
 
-                <v-btn color="#3E4E3C" block @click="$router.push('/')">
-                    Login
+                <v-btn color="#3E4E3C" block @click="$router.push('/register')">
+                    Register
                 </v-btn>
             </v-card-text>
         </v-card>
