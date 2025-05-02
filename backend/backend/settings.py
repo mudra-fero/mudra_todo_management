@@ -43,6 +43,7 @@ INSTALLED_APPS = [
     "apps.users",
     "apps.tasks",
     "django_filters",
+    "corsheaders",
 ]
 
 REST_FRAMEWORK = {
@@ -71,7 +72,13 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "corsheaders.middleware.CorsMiddleware",
 ]
+
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:5173",
+]
+
 
 AUTH_USER_MODEL = "users.User"
 

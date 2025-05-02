@@ -2,6 +2,7 @@ asgiref==3.8.1
 black @ git+https://github.com/psf/black@d0ff3bd6cb82e35b1529155d29fca2c13442e68d
 click==8.1.8
 Django==5.2
+django-cors-headers==4.7.0
 django-filter==25.1
 djangorestframework==3.16.0
 djangorestframework_simplejwt==5.5.0

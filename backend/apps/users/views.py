@@ -3,11 +3,14 @@ from .models import User
 from .pagination import CustomUserPagination
 from .permissions import IsAdmin, IsAdminOrManager
 from .serializers import UserSerializer, RegisterSerializer, LoginSerializer
+from rest_framework import filters
 
 
 class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
     pagination_class = CustomUserPagination
+    filter_backends = [filters.SearchFilter]
+    search_fields = ["username", "email", "first_name", "last_name"]
 
     def get_serializer_class(self):
         if self.action in ["list", "retrieve"]:
