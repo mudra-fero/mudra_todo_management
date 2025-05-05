@@ -10,7 +10,7 @@ class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
     pagination_class = CustomUserPagination
     filter_backends = [filters.SearchFilter]
-    search_fields = ["username", "email", "first_name", "last_name"]
+    search_fields = ["username", "email", "role"]
 
     def get_serializer_class(self):
         if self.action in ["list", "retrieve"]:
