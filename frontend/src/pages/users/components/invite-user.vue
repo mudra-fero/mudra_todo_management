@@ -3,6 +3,7 @@ import { ref, reactive, watch } from 'vue'
 import { useVuelidate } from '@vuelidate/core'
 import { required, email as emailValidator } from '@vuelidate/validators'
 import { toastUtility } from '@/utilities/toast-utility'
+import { computed } from 'vue'
 
 const props = defineProps({
   modelValue: Boolean,
@@ -10,7 +11,7 @@ const props = defineProps({
 })
 
 const emit = defineEmits(['update:modelValue', 'submit', 'close'])
-
+const isEditMode = computed(() => !!props.editUser)
 const isOpen = ref(props.modelValue)
 
 watch(() => props.modelValue, (val) => {
@@ -29,7 +30,6 @@ watch(() => props.editUser, (val) => {
   }
 })
 
-
 const isPasswordVisible = ref(false)
 
 const registerForm = reactive({
@@ -41,12 +41,13 @@ const registerForm = reactive({
 
 const showError = ref(false)
 
-const rules = {
+const rules = computed(() => ({
   username: { required },
-  password: { required },
+  password: isEditMode.value ? {} : { required },
   email: { required, email: emailValidator },
   role: { required }
-}
+}))
+
 
 function resetForm() {
   registerForm.username = ''
@@ -105,9 +106,9 @@ function formCancel() {
           <v-text-field v-model="registerForm.username" placeholder="Enter username" :error="v$.username.$error"
             :error-messages="v$.username.$errors.map(e => e.$message)" />
 
-          <v-label class="mb-1">Password</v-label>
-          <v-text-field v-model="registerForm.password" :type="isPasswordVisible ? 'text' : 'password'"
-            placeholder="Enter password" :error="v$.password.$error"
+          <v-label v-if="!isEditMode" class="mb-1">Password</v-label>
+          <v-text-field v-if="!isEditMode" v-model="registerForm.password"
+            :type="isPasswordVisible ? 'text' : 'password'" placeholder="Enter password" :error="v$.password.$error"
             :error-messages="v$.password.$errors.map(e => e.$message)">
             <template #append-inner>
               <v-icon @click="isPasswordVisible = !isPasswordVisible" style="cursor: pointer">
@@ -116,6 +117,7 @@ function formCancel() {
             </template>
           </v-text-field>
 
+
           <v-label class="mb-1">Role</v-label>
           <v-select v-model="registerForm.role" :items="['ADMIN', 'MANAGER', 'TEAM_MEMBER']" label="Select Role"
             variant="outlined" :error="v$.role.$error" :error-messages="v$.role.$errors.map(e => e.$message)" />
@@ -123,8 +125,9 @@ function formCancel() {
           <v-row class="mt-3">
             <v-col col="auto">
               <v-btn type="submit" color="#3E4E3C" block>
-                Add
+                {{ isEditMode ? 'Update' : 'Add' }}
               </v-btn>
+
             </v-col>
             <v-col col="auto">
               <v-btn type="button" color="grey" block @click="formCancel()">

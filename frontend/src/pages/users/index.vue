@@ -55,7 +55,7 @@ const fetchUsers = async (params) => {
     ...params,
     search: searchQuery.value,
     page: params.page,
-    page_size: itemsPerPage,
+    page_size: itemsPerPage.value,
   }
   try {
     // loaderUtility.show();
@@ -176,7 +176,6 @@ async function handleDeleteConfirm() {
           </v-data-table-server>
         </v-card>
       </div>
-      <InviteUserDialog v-model="showInviteDialog" @submit="handleInviteSubmit" />
       <InviteUserDialog v-model="showInviteDialog" :editUser="editingUser" @submit="handleInviteSubmit" />
       <DeleteDialog v-model="showDeleteDialog" @submit="handleDeleteConfirm" />
     </v-main>
