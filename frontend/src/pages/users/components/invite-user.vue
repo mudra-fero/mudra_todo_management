@@ -4,8 +4,10 @@ import { useVuelidate } from '@vuelidate/core'
 import { required, email as emailValidator } from '@vuelidate/validators'
 
 const props = defineProps({
-  modelValue: Boolean
+  modelValue: Boolean,
+  editUser: Object
 })
+
 const emit = defineEmits(['update:modelValue', 'submit', 'close'])
 
 const isOpen = ref(props.modelValue)
@@ -13,9 +15,19 @@ const isOpen = ref(props.modelValue)
 watch(() => props.modelValue, (val) => {
   isOpen.value = val
 })
+
 watch(isOpen, (val) => {
   emit('update:modelValue', val)
 })
+
+watch(() => props.editUser, (val) => {
+  if (val) {
+    registerForm.email = val.email || ''
+    registerForm.username = val.username || ''
+    role.value = val.role || ''
+  }
+})
+
 
 const isPasswordVisible = ref(false)
 
@@ -53,6 +65,10 @@ async function sendInvite() {
     const payload = {
       ...registerForm,
       role: role.value
+    }
+
+    if (props.editUser && props.editUser.id) {
+      payload.id = props.editUser.id
     }
 
     emit('submit', payload)

@@ -20,7 +20,12 @@ const searchQuery = ref('')
 const showDeleteDialog = ref(false)
 const userToDelete = ref(null)
 const apiUrl = import.meta.env.VITE_BACKEND_BASE_URL
+const editingUser = ref(null)
 
+function editUser(user) {
+  editingUser.value = { ...user }
+  showInviteDialog.value = true
+}
 
 function deleteUser(user) {
   userToDelete.value = user
@@ -76,12 +81,24 @@ function loadItems({ page, itemsPerPage, sortBy }) {
 
 async function handleInviteSubmit(payload) {
   try {
-    let { data } = await authenticationService.register(payload);
+    if (payload.id) {
+      // editing
+      await userServices.updateUser(payload.id, payload)
+      toastUtility.showSuccess(`User updated successfully.`)
+    } else {
+      // adding
+      await authenticationService.register(payload)
+      toastUtility.showSuccess(`User added successfully.`)
+    }
+
     loadItems({ page: 1, itemsPerPage: itemsPerPage.value })
   } catch (error) {
-    toastUtility.showError(error);
+    toastUtility.showError(error)
+  } finally {
+    editingUser.value = null
   }
 }
+
 
 async function handleDeleteConfirm() {
   try {
@@ -152,6 +169,7 @@ async function handleDeleteConfirm() {
         </v-card>
       </div>
       <InviteUserDialog v-model="showInviteDialog" @submit="handleInviteSubmit" />
+      <InviteUserDialog v-model="showInviteDialog" :editUser="editingUser" @submit="handleInviteSubmit" />
       <DeleteDialog v-model="showDeleteDialog" @submit="handleDeleteConfirm" />
     </v-main>
   </v-app>

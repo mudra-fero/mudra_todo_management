@@ -32,5 +32,20 @@ export const userServices = {
             const { messages } = errorHandlerUtility.handleError(error);
             throw messages;
         }
+    },
+    async updateUser(id, payload) {
+        try {
+            const response = await axiosUtility.getResponse({
+                apiName: `/users/${id}/`,
+                methodType: 'put',
+                payload: payload,
+                queryParams: {},
+                headers: {}
+            });
+            return response;
+        } catch (error) {
+            const { messages } = errorHandlerUtility.handleError(error);
+            throw messages;
+        }
     }
 }
