@@ -2,6 +2,7 @@
 import { ref, reactive, watch } from 'vue'
 import { useVuelidate } from '@vuelidate/core'
 import { required, email as emailValidator } from '@vuelidate/validators'
+import { toastUtility } from '@/utilities/toast-utility'
 
 const props = defineProps({
   modelValue: Boolean,
@@ -24,7 +25,7 @@ watch(() => props.editUser, (val) => {
   if (val) {
     registerForm.email = val.email || ''
     registerForm.username = val.username || ''
-    role.value = val.role || ''
+    registerForm.role = val.role || ''
   }
 })
 
@@ -34,23 +35,24 @@ const isPasswordVisible = ref(false)
 const registerForm = reactive({
   username: '',
   password: '',
-  email: ''
+  email: '',
+  role: ''
 })
 
-const role = ref('')
 const showError = ref(false)
 
 const rules = {
   username: { required },
   password: { required },
   email: { required, email: emailValidator },
+  role: { required }
 }
 
 function resetForm() {
   registerForm.username = ''
   registerForm.password = ''
   registerForm.email = ''
-  role.value = ''
+  registerForm.role = ''
   showError.value = false
   v$.value.$reset()
 }
@@ -59,12 +61,11 @@ const v$ = useVuelidate(rules, registerForm)
 
 async function sendInvite() {
   v$.value.$touch()
-  if (!v$.value.$invalid && role.value) {
+  if (!v$.value.$invalid) {
     showError.value = false
 
     const payload = {
       ...registerForm,
-      role: role.value
     }
 
     if (props.editUser && props.editUser.id) {
@@ -75,7 +76,7 @@ async function sendInvite() {
     resetForm()
     emit('update:modelValue', false)
   } else {
-    showError.value = true
+    toastUtility.showError("Please correct all the errors to submit the form!");
   }
 }
 
@@ -116,9 +117,9 @@ function formCancel() {
           </v-text-field>
 
           <v-label class="mb-1">Role</v-label>
-          <v-select v-model="role" :items="['ADMIN', 'MANAGER', 'TEAM_MEMBER']" label="Select Role" variant="outlined"
-            :error="!role && showError" :error-messages="!role && showError ? ['Role is required'] : []" />
-            <v-divider></v-divider>
+          <v-select v-model="registerForm.role" :items="['ADMIN', 'MANAGER', 'TEAM_MEMBER']" label="Select Role"
+            variant="outlined" :error="v$.role.$error" :error-messages="v$.role.$errors.map(e => e.$message)" />
+          <v-divider></v-divider>
           <v-row class="mt-3">
             <v-col col="auto">
               <v-btn type="submit" color="#3E4E3C" block>

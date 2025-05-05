@@ -1,6 +1,5 @@
 <script setup>
 import { ref } from 'vue'
-import axios from 'axios'
 import Header from '@/layout/Header.vue'
 import Sidebar from '@/layout/Sidebar.vue'
 import { watch } from 'vue'
@@ -19,7 +18,6 @@ const totalItems = ref(0)
 const searchQuery = ref('')
 const showDeleteDialog = ref(false)
 const userToDelete = ref(null)
-const apiUrl = import.meta.env.VITE_BACKEND_BASE_URL
 const editingUser = ref(null)
 
 function editUser(user) {
@@ -45,6 +43,12 @@ const headers = ref([
   { title: 'Collaborated Tasks', key: 'collaborated_tasks', align: 'center', sortable: false },
   { title: 'Actions', key: 'actions', align: 'center', sortable: false },
 ])
+
+function getColor(role) {
+  if (role == "TEAM_MEMBER") return 'error'
+  else if (role == "MANAGER") return 'warning'
+  else return 'success'
+}
 
 const fetchUsers = async (params) => {
   params = {
@@ -163,6 +167,10 @@ async function handleDeleteConfirm() {
               </v-menu>
             </template>
 
+            <template #item.role="{ item }">
+              <v-chip :border="`${getColor(item.role)} thin opacity-25`" :color="getColor(item.role)" :text="item.role"
+                size="x-small"></v-chip>
+            </template>
 
 
           </v-data-table-server>
