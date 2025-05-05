@@ -1,33 +1,15 @@
-import router from "@/router";
 import { axiosUtility } from "@/utilities/axios-utility";
 import { errorHandlerUtility } from "@/utilities/error-handler-utility";
 
-export const authenticationService = {
-
-    async register(payload) {
+// ====================== user-profile services ====================
+export const userServices = {
+    async getUserList(params) {
         try {
             const response = await axiosUtility.getResponse({
-                apiName: '/users/',
-                methodType: 'post',
-                payload: payload,
-                queryParams: {},
-                headers: {}
-            });
-            return response;
-        } catch (error) {
-            const { messages } = errorHandlerUtility.handleError(error);
-            throw messages;
-        }
-
-    },
-
-    async login(payload) {
-        try {
-            const response = await axiosUtility.getResponse({
-                apiName: '/login/',
-                methodType: 'post',
-                payload: payload,
-                queryParams: {},
+                apiName: `/users/`,
+                methodType: 'get',
+                payload: {},
+                queryParams: params,
                 headers: {}
             });
             return response;
@@ -36,8 +18,19 @@ export const authenticationService = {
             throw messages;
         }
     },
-    // logout() {
-    //     localStorageUtility.clearLocalStorage();
-    //     router.push({ name: 'Login' });
-    // }
+    async deleteUser(id) {
+        try {
+            const response = await axiosUtility.getResponse({
+                apiName: `/users/${id}/`,
+                methodType: 'delete',
+                payload: {},
+                queryParams: {},
+                headers: {}
+            });
+            return response;
+        } catch (error) {
+            const { messages } = errorHandlerUtility.handleError(error);
+            throw messages;
+        }
+    }
 }

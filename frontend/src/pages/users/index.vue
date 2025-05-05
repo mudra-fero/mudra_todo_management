@@ -6,6 +6,9 @@ import Sidebar from '@/layout/Sidebar.vue'
 import { watch } from 'vue'
 import InviteUserDialog from './components/invite-user.vue'
 import DeleteDialog from './components/delete-user.vue'
+import { userServices } from '@/services/users'
+import { toastUtility } from '@/utilities/toast-utility'
+import { authenticationService } from '@/services/authentication'
 
 const showInviteDialog = ref(false)
 const drawer = ref(true)
@@ -16,8 +19,8 @@ const totalItems = ref(0)
 const searchQuery = ref('')
 const showDeleteDialog = ref(false)
 const userToDelete = ref(null)
-const snackbar = ref(false)
-const snackbarMessage = ref('')
+const apiUrl = import.meta.env.VITE_BACKEND_BASE_URL
+
 
 function deleteUser(user) {
   userToDelete.value = user
@@ -38,35 +41,30 @@ const headers = ref([
   { title: 'Actions', key: 'actions', align: 'center', sortable: false },
 ])
 
-async function fetchCars({ page, itemsPerPage, sortBy }) {
-  const token = localStorage.getItem('access_token')
+const fetchUsers = async (params) => {
+  params = {
+    ...params,
+    search: searchQuery.value,
+    page: params.page,
+    page_size: itemsPerPage,
+  }
   try {
-    const response = await axios.get('http://127.0.0.1:8000/users/', {
-      params: {
-        page,
-        page_size: itemsPerPage,
-        search: searchQuery.value
-      },
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    })
-
+    // loaderUtility.show();
+    const response = await userServices.getUserList(params);
     return {
       items: response.data.results,
       total: response.data.count,
     }
-
   } catch (error) {
-    snackbarMessage.value = error.message
-    snackbar.value = true
-    return { items: [], total: 0 }
+    toastUtility.showError(error);
+  } finally {
+    // loaderUtility.hide();
   }
-}
+};
 
 function loadItems({ page, itemsPerPage, sortBy }) {
   loading.value = true
-  fetchCars({ page, itemsPerPage, sortBy }).then(({ items, total }) => {
+  fetchUsers({ page, itemsPerPage, sortBy }).then(({ items, total }) => {
     serverItems.value = items.map((item, index) => ({
       ...item,
       sn: (page - 1) * itemsPerPage + index + 1,
@@ -76,39 +74,25 @@ function loadItems({ page, itemsPerPage, sortBy }) {
   })
 }
 
-function handleInviteSubmit(payload) {
-  console.log('Invited user:', payload)
-  const token = localStorage.getItem('access_token')
-  axios.post('http://127.0.0.1:8000/users/', payload, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  })
-    .then(() => {
-      loadItems({ page: 1, itemsPerPage: itemsPerPage.value })
-    })
-    .catch(error => {
-      snackbarMessage.value = "User already exists"
-      snackbar.value = true
-    })
+async function handleInviteSubmit(payload) {
+  try {
+    let { data } = await authenticationService.register(payload);
+    loadItems({ page: 1, itemsPerPage: itemsPerPage.value })
+  } catch (error) {
+    toastUtility.showError(error);
+  }
 }
 
-function handleDeleteConfirm() {
-  const token = localStorage.getItem('access_token')
-  axios.delete(`http://127.0.0.1:8000/users/${userToDelete.value.id}/`, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  })
-    .then(() => {
-      showDeleteDialog.value = false
-      userToDelete.value = null
-      loadItems({ page: 1, itemsPerPage: itemsPerPage.value })
-    })
-    .catch(error => {
-      snackbarMessage.value = "User not found"
-      snackbar.value = true
-    })
+async function handleDeleteConfirm() {
+  try {
+    await userServices.deleteUser(userToDelete.value.id);
+    showDeleteDialog.value = false
+    toastUtility.showSuccess(`User has been deleted successfully.`);
+    userToDelete.value = null
+    loadItems({ page: 1, itemsPerPage: itemsPerPage.value })
+  } catch (error) {
+    toastUtility.showError(error);
+  }
 }
 
 
@@ -141,30 +125,27 @@ function handleDeleteConfirm() {
           <v-data-table-server class="user-table" v-model:items-per-page="itemsPerPage" :headers="headers"
             :items="serverItems" :items-length="totalItems" :loading="loading" item-value="name"
             @update:options="loadItems">
+
             <template #item.actions="{ item }">
-              <v-icon icon="mdi-pencil" size="small" color="#3E4E3C" class="me-2" @click="editUser(item)" />
-              <v-icon icon="mdi-delete" size="small" color="red" @click="deleteUser(item)" />
-            </template>
-            <!-- 
-            <template #item.actions="{ item }">
-              <v-menu offset-y>
+              <v-menu offset-y transition="scale-transition">
                 <template #activator="{ props }">
-                  <v-btn v-bind="props" icon size="small" variant="text" class="ma-0 pa-0">
-                    <v-icon>mdi-dots-vertical</v-icon>
+                  <v-btn v-bind="props" icon size="x-small" variant="text" class="ma-0 pa-0">
+                    <v-icon size="20">mdi-dots-vertical</v-icon>
                   </v-btn>
                 </template>
 
-                <v-list>
-                  <v-list-item @click="editUser(item)">
+                <v-list density="compact">
+                  <v-list-item @click="editUser(item)" class="px-4">
                     <v-list-item-title>Edit</v-list-item-title>
                   </v-list-item>
 
-                  <v-list-item @click="deleteUser(item)">
+                  <v-list-item @click="deleteUser(item)" class="px-4">
                     <v-list-item-title class="text-red">Delete</v-list-item-title>
                   </v-list-item>
                 </v-list>
               </v-menu>
-            </template> -->
+            </template>
+
 
 
           </v-data-table-server>
@@ -172,9 +153,6 @@ function handleDeleteConfirm() {
       </div>
       <InviteUserDialog v-model="showInviteDialog" @submit="handleInviteSubmit" />
       <DeleteDialog v-model="showDeleteDialog" @submit="handleDeleteConfirm" />
-      <v-snackbar v-model="snackbar" color="error" timeout="4000">
-        {{ snackbarMessage }}
-      </v-snackbar>
     </v-main>
   </v-app>
 </template>

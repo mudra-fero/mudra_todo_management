@@ -2,13 +2,13 @@
 import { reactive, ref } from 'vue'
 import useVuelidate from '@vuelidate/core'
 import { required, email as emailValidator } from '@vuelidate/validators'
-import { authenticationservice } from '@/services/authentication'
-import axios from "axios";
+import { authenticationService } from '@/services/authentication'
+import { toastUtility } from '@/utilities/toast-utility'
 import { useRouter } from 'vue-router';
 const router = useRouter();
 
 const registerForm = reactive({
-    userName: null,
+    username: null,
     password: null,
     email: null,
 })
@@ -22,30 +22,23 @@ const loading = ref(false)
 const isPasswordVisible = ref(false)
 const v$ = useVuelidate(rules, registerForm)
 const showError = ref(false)
-const snackbar = ref(false)
-const snackbarMessage = ref('')
 
 const submit = async () => {
     const isValid = await v$.value.$validate()
     if (!isValid) {
-        showError.value = true
-        return
+        toastUtility.showError("Please correct all the errors to submit the form!");
+        return;
     }
 
     showError.value = false
     loading.value = true
 
-    const response = axios.post(`http://127.0.0.1:8000/users/`, registerForm)
-        .then(function (response) {
-            loading.value = false
-            router.push('/login')
-        })
-        .catch(function (error) {
-            loading.value = false
-            snackbarMessage.value = error.message
-            snackbar.value = true
-            loading.value = false
-        });
+    try {
+        let { data } = await authenticationService.register(registerForm);
+        router.push({ name: "login" });
+    } catch (error) {
+        toastUtility.showError(error);
+    }
 }
 </script>
 
@@ -100,9 +93,6 @@ const submit = async () => {
             </v-card-text>
         </v-card>
     </div>
-    <v-snackbar v-model="snackbar" color="error" timeout="4000">
-        {{ snackbarMessage }}
-    </v-snackbar>
 </template>
 
 <style scoped>

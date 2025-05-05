@@ -2,13 +2,14 @@
 import { reactive, ref } from 'vue'
 import useVuelidate from '@vuelidate/core'
 import { required } from '@vuelidate/validators'
-import { authenticationservice } from '@/services/authentication'
-import axios from "axios";
+import { authenticationService } from '@/services/authentication'
+import { toastUtility } from '@/utilities/toast-utility'
+import { localStorageUtility } from '@/utilities/local-storage-utility'
 import { useRouter } from 'vue-router';
 const router = useRouter();
 
-const registerForm = reactive({
-    userName: null,
+const loginForm = reactive({
+    username: null,
     password: null,
 })
 
@@ -18,34 +19,26 @@ const rules = reactive({
 })
 const loading = ref(false)
 const isPasswordVisible = ref(false)
-const v$ = useVuelidate(rules, registerForm)
+const v$ = useVuelidate(rules, loginForm)
 const showError = ref(false)
-const snackbar = ref(false)
-const snackbarMessage = ref('')
 
 const submit = async () => {
     const isValid = await v$.value.$validate()
     if (!isValid) {
-        showError.value = true
-        return
+        toastUtility.showError("Please correct all the errors to submit the form!");
+        return;
     }
 
     showError.value = false
     loading.value = true
 
-    const response = axios.post(`http://127.0.0.1:8000/login/`, registerForm)
-        .then(function (response) {
-            loading.value = false
-            localStorage.setItem('access_token', response.data.access);
-            localStorage.setItem('refresh_token', response.data.refresh);
-            router.push('/users')
-        })
-        .catch(function (error) {
-            loading.value = false
-            snackbarMessage.value = error.message
-            snackbar.value = true
-            loading.value = false
-        });
+    try {
+        let { data } = await authenticationService.login(loginForm);
+        localStorageUtility.setItemToLocalStorage("access_token", data.access);
+        router.push({ name: "users" });
+    } catch (error) {
+        toastUtility.showError(error);
+    }
 }
 </script>
 
@@ -67,11 +60,11 @@ const submit = async () => {
                     </v-alert>
 
                     <v-label class="mb-3 mx-1">Username</v-label>
-                    <v-text-field v-model="registerForm.username" placeholder="Enter username"
-                        :error="v$.username.$error" :error-messages="v$.username.$errors.map(e => e.$message)" />
+                    <v-text-field v-model="loginForm.username" placeholder="Enter username" :error="v$.username.$error"
+                        :error-messages="v$.username.$errors.map(e => e.$message)" />
 
                     <v-label class="mb-3 mx-1">Password</v-label>
-                    <v-text-field v-model="registerForm.password" :type="isPasswordVisible ? 'text' : 'password'"
+                    <v-text-field v-model="loginForm.password" :type="isPasswordVisible ? 'text' : 'password'"
                         placeholder="Enter password" :error="v$.password.$error"
                         :error-messages="v$.password.$errors.map(e => e.$message)">
                         <template #append-inner>
@@ -96,9 +89,6 @@ const submit = async () => {
             </v-card-text>
         </v-card>
     </div>
-    <v-snackbar v-model="snackbar" color="error" timeout="4000">
-        {{ snackbarMessage }}
-    </v-snackbar>
 </template>
 
 <style scoped>
