@@ -19,6 +19,13 @@ const searchQuery = ref('')
 const showDeleteDialog = ref(false)
 const userToDelete = ref(null)
 const editingUser = ref(null)
+const changePasswordMode = ref(false)
+
+function changeUserPassword(user) {
+  editingUser.value = { ...user }
+  changePasswordMode.value = true
+  showInviteDialog.value = true
+}
 
 function editUser(user) {
   editingUser.value = { ...user }
@@ -100,6 +107,7 @@ async function handleInviteSubmit(payload) {
     toastUtility.showError(error)
   } finally {
     editingUser.value = null
+    changePasswordMode.value = true
   }
 }
 
@@ -163,6 +171,10 @@ async function handleDeleteConfirm() {
                   <v-list-item @click="deleteUser(item)" class="px-4">
                     <v-list-item-title class="text-red">Delete</v-list-item-title>
                   </v-list-item>
+
+                  <v-list-item @click="changeUserPassword(item)" class="px-4">
+                    <v-list-item-title>Change password</v-list-item-title>
+                  </v-list-item>
                 </v-list>
               </v-menu>
             </template>
@@ -176,7 +188,7 @@ async function handleDeleteConfirm() {
           </v-data-table-server>
         </v-card>
       </div>
-      <InviteUserDialog v-model="showInviteDialog" :editUser="editingUser" @submit="handleInviteSubmit" />
+      <InviteUserDialog v-model="showInviteDialog" :editUser="editingUser" :changePasswordMode="changePasswordMode" @submit="handleInviteSubmit" />
       <DeleteDialog v-model="showDeleteDialog" @submit="handleDeleteConfirm" />
     </v-main>
   </v-app>
