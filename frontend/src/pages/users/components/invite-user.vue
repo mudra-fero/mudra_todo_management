@@ -4,6 +4,7 @@ import { useVuelidate } from '@vuelidate/core'
 import { required, email as emailValidator, sameAs } from '@vuelidate/validators'
 import { toastUtility } from '@/utilities/toast-utility'
 import { computed } from 'vue'
+import { userRoleChoices } from '@/utilities/choice-filter-utility'
 
 const props = defineProps({
   modelValue: Boolean,
@@ -78,12 +79,21 @@ async function sendInvite() {
   if (!v$.value.$invalid) {
     showError.value = false
 
-    const payload = {
-      ...registerForm,
-    }
+    let payload
 
-    if (props.editUser && props.editUser.id) {
-      payload.id = props.editUser.id
+    if (isChangePasswordMode.value) {
+      payload = {
+        id: props.editUser?.id,
+        new_password: registerForm.password
+      }
+    } else {
+      payload = {
+        ...registerForm,
+      }
+
+      if (props.editUser && props.editUser.id) {
+        payload.id = props.editUser.id
+      }
     }
 
     emit('submit', payload)
@@ -93,6 +103,7 @@ async function sendInvite() {
     toastUtility.showError("Please correct all the errors to submit the form!");
   }
 }
+
 
 function formCancel() {
   resetForm()
@@ -107,45 +118,46 @@ function formCancel() {
       <v-divider></v-divider>
       <v-card-text>
         <v-form @submit.prevent="sendInvite">
-<!-- Email -->
-<v-label v-if="showUserFields" class="mb-1">Email</v-label>
-<v-text-field v-if="showUserFields" v-model="registerForm.email" placeholder="Enter email"
-  :error="v$.email.$error" :error-messages="v$.email.$errors.map(e => e.$message)" />
+          <!-- Email -->
+          <v-label v-if="showUserFields" class="mb-1">Email</v-label>
+          <v-text-field v-if="showUserFields" v-model="registerForm.email" placeholder="Enter email"
+            :error="v$.email.$error" :error-messages="v$.email.$errors.map(e => e.$message)" />
 
-<!-- Username -->
-<v-label v-if="showUserFields" class="mb-1">Username</v-label>
-<v-text-field v-if="showUserFields" v-model="registerForm.username" placeholder="Enter username"
-  :error="v$.username.$error" :error-messages="v$.username.$errors.map(e => e.$message)" />
+          <!-- Username -->
+          <v-label v-if="showUserFields" class="mb-1">Username</v-label>
+          <v-text-field v-if="showUserFields" v-model="registerForm.username" placeholder="Enter username"
+            :error="v$.username.$error" :error-messages="v$.username.$errors.map(e => e.$message)" />
 
-<!-- Password -->
-<v-label v-if="showPasswordFields" class="mb-1">Password</v-label>
-<v-text-field v-if="showPasswordFields" v-model="registerForm.password"
-  :type="isPasswordVisible ? 'text' : 'password'" placeholder="Enter password"
-  :error="v$.password.$error" :error-messages="v$.password.$errors.map(e => e.$message)">
-  <template #append-inner>
-    <v-icon @click="isPasswordVisible = !isPasswordVisible" style="cursor: pointer">
-      {{ isPasswordVisible ? 'mdi-eye-off' : 'mdi-eye' }}
-    </v-icon>
-  </template>
-</v-text-field>
+          <!-- Password -->
+          <v-label v-if="showPasswordFields" class="mb-1">Password</v-label>
+          <v-text-field v-if="showPasswordFields" v-model="registerForm.password"
+            :type="isPasswordVisible ? 'text' : 'password'" placeholder="Enter password" :error="v$.password.$error"
+            :error-messages="v$.password.$errors.map(e => e.$message)">
+            <template #append-inner>
+              <v-icon @click="isPasswordVisible = !isPasswordVisible" style="cursor: pointer">
+                {{ isPasswordVisible ? 'mdi-eye-off' : 'mdi-eye' }}
+              </v-icon>
+            </template>
+          </v-text-field>
 
-<!-- Confirm Password -->
-<v-label v-if="showPasswordFields" class="mb-1">Confirm Password</v-label>
-<v-text-field v-if="showPasswordFields" v-model="registerForm.confirmPassword"
-  :type="isConfirmPasswordVisible ? 'text' : 'password'" placeholder="Confirm password"
-  :error="v$.confirmPassword.$error" :error-messages="v$.confirmPassword.$errors.map(e => e.$message)">
-  <template #append-inner>
-    <v-icon @click="isConfirmPasswordVisible = !isConfirmPasswordVisible" style="cursor: pointer">
-      {{ isConfirmPasswordVisible ? 'mdi-eye-off' : 'mdi-eye' }}
-    </v-icon>
-  </template>
-</v-text-field>
+          <!-- Confirm Password -->
+          <v-label v-if="showPasswordFields" class="mb-1">Confirm Password</v-label>
+          <v-text-field v-if="showPasswordFields" v-model="registerForm.confirmPassword"
+            :type="isConfirmPasswordVisible ? 'text' : 'password'" placeholder="Confirm password"
+            :error="v$.confirmPassword.$error" :error-messages="v$.confirmPassword.$errors.map(e => e.$message)">
+            <template #append-inner>
+              <v-icon @click="isConfirmPasswordVisible = !isConfirmPasswordVisible" style="cursor: pointer">
+                {{ isConfirmPasswordVisible ? 'mdi-eye-off' : 'mdi-eye' }}
+              </v-icon>
+            </template>
+          </v-text-field>
 
-<!-- Role -->
-<v-label v-if="showUserFields" class="mb-1">Role</v-label>
-<v-select v-if="showUserFields" v-model="registerForm.role" :items="['ADMIN', 'MANAGER', 'TEAM_MEMBER']"
-  label="Select Role" variant="outlined"
-  :error="v$.role.$error" :error-messages="v$.role.$errors.map(e => e.$message)" />
+          <!-- Role -->
+          <v-label v-if="showUserFields" class="mb-1">Role</v-label>
+          <v-select v-if="showUserFields" v-model="registerForm.role" :items="userRoleChoices" item-title="value"
+            item-value="key" variant="outlined" :error="v$.role.$error"
+            :error-messages="v$.role.$errors.map(e => e.$message)" />
+
 
           <v-divider></v-divider>
           <v-row class="mt-3">

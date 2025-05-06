@@ -8,6 +8,7 @@ import DeleteDialog from './components/delete-user.vue'
 import { userServices } from '@/services/users'
 import { toastUtility } from '@/utilities/toast-utility'
 import { authenticationService } from '@/services/authentication'
+import { userRoleChoices } from '@/utilities/choice-filter-utility'
 
 const showInviteDialog = ref(false)
 const drawer = ref(true)
@@ -16,6 +17,7 @@ const serverItems = ref([])
 const loading = ref(true)
 const totalItems = ref(0)
 const searchQuery = ref('')
+const filterQuery = ref(null)
 const showDeleteDialog = ref(false)
 const userToDelete = ref(null)
 const editingUser = ref(null)
@@ -37,7 +39,19 @@ function deleteUser(user) {
   showDeleteDialog.value = true
 }
 
+function handleDialogClose(val) {
+  showInviteDialog.value = val
+  if (!val) {
+    editingUser.value = null
+    changePasswordMode.value = false
+  }
+}
+
 watch(searchQuery, () => {
+  loadItems({ page: 1, itemsPerPage: itemsPerPage.value })
+})
+
+watch(filterQuery, () => {
   loadItems({ page: 1, itemsPerPage: itemsPerPage.value })
 })
 
@@ -56,11 +70,12 @@ function getColor(role) {
   else if (role == "MANAGER") return 'warning'
   else return 'success'
 }
-
-const fetchUsers = async (params) => {
+  
+const fetchUsers = async (params) => {  
   params = {
     ...params,
     search: searchQuery.value,
+    filter: filterQuery.value,
     page: params.page,
     page_size: itemsPerPage.value,
   }
@@ -92,7 +107,11 @@ function loadItems({ page, itemsPerPage, sortBy }) {
 
 async function handleInviteSubmit(payload) {
   try {
-    if (payload.id) {
+    if (changePasswordMode.value) {
+      // Change password
+      await userServices.changePassword(payload.id, payload)
+      toastUtility.showSuccess('Password updated successfully.')
+    } else if (payload.id) {
       // editing
       await userServices.updateUser(payload.id, payload)
       toastUtility.showSuccess(`User updated successfully.`)
@@ -107,7 +126,7 @@ async function handleInviteSubmit(payload) {
     toastUtility.showError(error)
   } finally {
     editingUser.value = null
-    changePasswordMode.value = true
+    changePasswordMode.value = false
   }
 }
 
@@ -136,8 +155,12 @@ async function handleDeleteConfirm() {
       <div class="d-flex justify-center user-add-div">
         <div style="width: 75vw;" class="mt-5">
           <v-row>
-            <v-col cols="10">
-              <v-text-field width="50vw" v-model="searchQuery" variant="outlined" placeholder="Search user ...." />
+            <v-col cols="5">
+              <v-text-field width="30vw" v-model="searchQuery" variant="outlined" placeholder="Search user ...." />
+            </v-col>
+            <v-col cols="5">
+              <v-select clearable chips placeholder="Select Role" v-model="filterQuery" variant="outlined" :items="userRoleChoices" item-title="value"
+                item-value="key" multiple></v-select>
             </v-col>
             <v-col cols="2" class="mt-3">
               <v-btn color="#3E4E3C" density="comfortable" @click="showInviteDialog = true">
@@ -188,7 +211,8 @@ async function handleDeleteConfirm() {
           </v-data-table-server>
         </v-card>
       </div>
-      <InviteUserDialog v-model="showInviteDialog" :editUser="editingUser" :changePasswordMode="changePasswordMode" @submit="handleInviteSubmit" />
+      <InviteUserDialog v-model="showInviteDialog" :editUser="editingUser" :changePasswordMode="changePasswordMode"
+        @submit="handleInviteSubmit" @update:modelValue="handleDialogClose" />
       <DeleteDialog v-model="showDeleteDialog" @submit="handleDeleteConfirm" />
     </v-main>
   </v-app>

@@ -47,5 +47,20 @@ export const userServices = {
             const { messages } = errorHandlerUtility.handleError(error);
             throw messages;
         }
+    },
+    async changePassword(id, payload) {
+        try {
+            const response = await axiosUtility.getResponse({
+                apiName: `/users/${id}/change-password/`,
+                methodType: 'patch',
+                payload: payload,
+                queryParams: {},
+                headers: {}
+            });
+            return response;
+        } catch (error) {
+            const { messages } = errorHandlerUtility.handleError(error);
+            throw messages;
+        }
     }
 }
