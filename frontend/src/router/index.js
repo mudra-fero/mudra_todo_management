@@ -14,11 +14,18 @@ const router = createRouter({
       component: () => import('@/pages/login.vue'),
     },
     {
-      path: '/users',
-      name: 'users',
-      component: () => import('@/pages/users/index.vue'),
-      meta: { requiresAuth: true },
+      path: '/',
+      component: () => import('@/layout/default.vue'),
+      children: [
+        {
+          path: '/users',
+          name: 'users',
+          component: () => import('@/pages/users/index.vue'),
+          meta: { requiresAuth: true },
+        },
+      ]
     },
+    
   ],
 })
 

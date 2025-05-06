@@ -3,6 +3,21 @@ import { errorHandlerUtility } from "@/utilities/error-handler-utility";
 
 // ====================== user-profile services ====================
 export const userServices = {
+    async getCurrentUser() {
+        try {
+            const response = await axiosUtility.getResponse({
+                apiName: `/current/user/`,
+                methodType: 'get',
+                payload: {},
+                queryParams: {},
+                headers: {}
+            });
+            return response;
+        } catch (error) {
+            const { messages } = errorHandlerUtility.handleError(error);
+            throw messages;
+        }
+    },
     async getUserList(params) {
         try {
             const response = await axiosUtility.getResponse({

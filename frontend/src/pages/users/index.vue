@@ -1,17 +1,13 @@
 <script setup>
 import { ref } from 'vue'
-import Header from '@/layout/Header.vue'
-import Sidebar from '@/layout/Sidebar.vue'
 import { watch } from 'vue'
 import InviteUserDialog from './components/invite-user.vue'
 import DeleteDialog from './components/delete-user.vue'
 import { userServices } from '@/services/users'
 import { toastUtility } from '@/utilities/toast-utility'
-import { authenticationService } from '@/services/authentication'
 import { userRoleChoices } from '@/utilities/choice-filter-utility'
 
 const showInviteDialog = ref(false)
-const drawer = ref(true)
 const itemsPerPage = ref(10)
 const serverItems = ref([])
 const loading = ref(true)
@@ -118,15 +114,10 @@ async function handleDeleteConfirm() {
 async function submitHandler() {
   loadItems({ page: 1, itemsPerPage: itemsPerPage.value })
 }
-
-
 </script>
 
 <template>
-  <v-app class="user-table-div">
-    <Header @toggle-drawer="drawer = !drawer"></Header>
-    <Sidebar :drawer="drawer" @update:drawer="drawer = $event" />
-
+  <v-app class="page-color">
     <v-main>
       <div class="d-flex justify-center">
         <div style="width: 75vw;" class="mt-5">
@@ -195,10 +186,6 @@ async function submitHandler() {
 </template>
 
 <style scoped>
-.user-table-div {
-  background-color: #F5F3EF;
-}
-
 :deep(.user-table thead th) {
   background-color: #3E4E3C;
   color: #F5F3EF;

@@ -1,6 +1,7 @@
 import router from "@/router";
 import { axiosUtility } from "@/utilities/axios-utility";
 import { errorHandlerUtility } from "@/utilities/error-handler-utility";
+import { localStorageUtility } from "@/utilities/local-storage-utility";
 
 export const authenticationService = {
 
@@ -36,8 +37,8 @@ export const authenticationService = {
             throw messages;
         }
     },
-    // logout() {
-    //     localStorageUtility.clearLocalStorage();
-    //     router.push({ name: 'Login' });
-    // }
+    async logout() {
+        localStorageUtility.clearLocalStorage();
+        router.push({ name: 'login' });
+    }
 }

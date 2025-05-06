@@ -38,6 +38,8 @@ const submit = async () => {
         router.push({ name: "users" });
     } catch (error) {
         toastUtility.showError(error);
+    } finally {
+        loading.value = false
     }
 }
 </script>
