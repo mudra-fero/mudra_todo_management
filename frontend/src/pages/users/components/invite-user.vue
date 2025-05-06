@@ -5,6 +5,8 @@ import { required, email as emailValidator, sameAs } from '@vuelidate/validators
 import { toastUtility } from '@/utilities/toast-utility'
 import { computed } from 'vue'
 import { userRoleChoices } from '@/utilities/choice-filter-utility'
+import { userServices } from '@/services/users'
+import { authenticationService } from '@/services/authentication'
 
 const props = defineProps({
   modelValue: Boolean,
@@ -74,33 +76,33 @@ function resetForm() {
 
 const v$ = useVuelidate(rules, registerForm)
 
-async function sendInvite() {
-  v$.value.$touch()
-  if (!v$.value.$invalid) {
-    showError.value = false
-
-    let payload
-
-    if (isChangePasswordMode.value) {
-      payload = {
-        id: props.editUser?.id,
-        new_password: registerForm.password
-      }
-    } else {
-      payload = {
-        ...registerForm,
-      }
-
-      if (props.editUser && props.editUser.id) {
-        payload.id = props.editUser.id
-      }
+const handleInviteSubmit = async () => {
+  try {
+    const { editUser, changePasswordMode } = props
+    const id = editUser?.id
+    const payload = {
+      ...(changePasswordMode
+        ? { id, new_password: registerForm.password }
+        : { ...registerForm, id }),
     }
 
-    emit('submit', payload)
-    resetForm()
+    if (changePasswordMode) {
+      await userServices.changePassword(id, payload)
+      toastUtility.showSuccess('Password updated successfully.')
+    } else if (id) {
+      await userServices.updateUser(id, payload)
+      toastUtility.showSuccess('User updated successfully.')
+    } else {
+      await authenticationService.register(payload)
+      toastUtility.showSuccess('User added successfully.')
+    }
+
+    emit('submit')
     emit('update:modelValue', false)
-  } else {
-    toastUtility.showError("Please correct all the errors to submit the form!");
+    resetForm()
+
+  } catch (error) {
+    toastUtility.showError(error)
   }
 }
 
@@ -117,7 +119,7 @@ function formCancel() {
       <v-card-title class="text-h5 d-flex justify-center">Fill user details</v-card-title>
       <v-divider></v-divider>
       <v-card-text>
-        <v-form @submit.prevent="sendInvite">
+        <v-form @submit.prevent="handleInviteSubmit">
           <!-- Email -->
           <v-label v-if="showUserFields" class="mb-1">Email</v-label>
           <v-text-field v-if="showUserFields" v-model="registerForm.email" placeholder="Enter email"

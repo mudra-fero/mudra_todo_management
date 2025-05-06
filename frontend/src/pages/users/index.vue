@@ -80,7 +80,6 @@ const fetchUsers = async (params) => {
     page_size: itemsPerPage.value,
   }
   try {
-    // loaderUtility.show();
     const response = await userServices.getUserList(params);
     return {
       items: response.data.results,
@@ -89,7 +88,6 @@ const fetchUsers = async (params) => {
   } catch (error) {
     toastUtility.showError(error);
   } finally {
-    // loaderUtility.hide();
   }
 };
 
@@ -105,32 +103,6 @@ function loadItems({ page, itemsPerPage, sortBy }) {
   })
 }
 
-async function handleInviteSubmit(payload) {
-  try {
-    if (changePasswordMode.value) {
-      // Change password
-      await userServices.changePassword(payload.id, payload)
-      toastUtility.showSuccess('Password updated successfully.')
-    } else if (payload.id) {
-      // editing
-      await userServices.updateUser(payload.id, payload)
-      toastUtility.showSuccess(`User updated successfully.`)
-    } else {
-      // adding
-      await authenticationService.register(payload)
-      toastUtility.showSuccess(`User added successfully.`)
-    }
-
-    loadItems({ page: 1, itemsPerPage: itemsPerPage.value })
-  } catch (error) {
-    toastUtility.showError(error)
-  } finally {
-    editingUser.value = null
-    changePasswordMode.value = false
-  }
-}
-
-
 async function handleDeleteConfirm() {
   try {
     await userServices.deleteUser(userToDelete.value.id);
@@ -143,16 +115,20 @@ async function handleDeleteConfirm() {
   }
 }
 
+async function submitHandler() {
+  loadItems({ page: 1, itemsPerPage: itemsPerPage.value })
+}
+
 
 </script>
 
 <template>
-  <v-app>
+  <v-app class="user-table-div">
     <Header @toggle-drawer="drawer = !drawer"></Header>
     <Sidebar :drawer="drawer" @update:drawer="drawer = $event" />
 
     <v-main>
-      <div class="d-flex justify-center user-add-div">
+      <div class="d-flex justify-center">
         <div style="width: 75vw;" class="mt-5">
           <v-row>
             <v-col cols="5">
@@ -172,7 +148,7 @@ async function handleDeleteConfirm() {
       </div>
 
 
-      <div class="user-table-div d-flex justify-center align-center">
+      <div class="d-flex justify-center align-center">
         <v-card width="75vw" elevation="16">
           <v-data-table-server class="user-table" v-model:items-per-page="itemsPerPage" :headers="headers"
             :items="serverItems" :items-length="totalItems" :loading="loading" item-value="name"
@@ -212,7 +188,7 @@ async function handleDeleteConfirm() {
         </v-card>
       </div>
       <InviteUserDialog v-model="showInviteDialog" :editUser="editingUser" :changePasswordMode="changePasswordMode"
-        @submit="handleInviteSubmit" @update:modelValue="handleDialogClose" />
+        @submit="submitHandler()" @update:modelValue="handleDialogClose" />
       <DeleteDialog v-model="showDeleteDialog" @submit="handleDeleteConfirm" />
     </v-main>
   </v-app>
@@ -220,10 +196,6 @@ async function handleDeleteConfirm() {
 
 <style scoped>
 .user-table-div {
-  background-color: #F5F3EF;
-}
-
-.user-add-div {
   background-color: #F5F3EF;
 }
 
