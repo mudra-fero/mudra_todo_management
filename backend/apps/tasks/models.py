@@ -1,78 +1,41 @@
 from django.db import models
-from django.conf import settings
 from lib.enum import LifecycleStage, PriorityLevel
-
-
-class TaskAssignment(models.Model):
-    task = models.ForeignKey(
-        "Task",
-        related_name="task_assignments",
-        on_delete=models.CASCADE,
-        verbose_name="Task",
-    )
-    user = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        related_name="task_assignments",
-        on_delete=models.CASCADE,
-        verbose_name="Assigned User",
-    )
-    assigned_at = models.DateTimeField(auto_now_add=True)
-
-    def __str__(self):
-        return f"{self.task.title} -> {self.user.username}"
+from apps.users.models import UserProfile
 
 
 class TaskCollaborator(models.Model):
     task = models.ForeignKey(
-        "Task",
-        related_name="task_collaborations",
-        on_delete=models.CASCADE,
-        verbose_name="Task",
+        "Task", related_name="task_collaborations", on_delete=models.CASCADE
     )
     user = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        related_name="task_collaborations",
-        on_delete=models.CASCADE,
-        verbose_name="Collaborator",
+        UserProfile, related_name="task_collaborations", on_delete=models.CASCADE
     )
     added_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f"{self.task.title} - Collaborator: {self.user.username}"
+        return f"{self.task.title} - Collaborator: {self.user.user.username}"
 
 
 class Task(models.Model):
-    title = models.CharField(max_length=150, verbose_name="Title")
-    description = models.TextField(verbose_name="Description")
+    title = models.CharField(max_length=150)
+    description = models.TextField()
     lifecycle_stage = models.IntegerField(
-        choices=LifecycleStage.choices,
-        default=LifecycleStage.TO_DO,
-        verbose_name="Lifecycle Stage",
+        choices=LifecycleStage.choices, default=LifecycleStage.TO_DO
     )
     priority = models.IntegerField(
-        choices=PriorityLevel.choices,
-        default=PriorityLevel.LOW,
-        verbose_name="Priority",
+        choices=PriorityLevel.choices, default=PriorityLevel.LOW
     )
-    deadline = models.DateField(null=True, blank=True, verbose_name="Deadline")
+    deadline = models.DateField(null=True, blank=True)
+    assigned_at = models.DateField(null=True, blank=True)
 
     created_by = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        related_name="created_tasks",
-        on_delete=models.CASCADE,
-        verbose_name="Created By",
+        UserProfile, related_name="created_tasks", on_delete=models.CASCADE
     )
-    assigned_to = models.ManyToManyField(
-        settings.AUTH_USER_MODEL,
-        through="TaskAssignment",
-        related_name="assigned_tasks",
-        verbose_name="Assigned To",
+    assigned_to = models.ForeignKey(
+        UserProfile, related_name="assigned_tasks", on_delete=models.CASCADE, null=True
     )
     collaborators = models.ManyToManyField(
-        settings.AUTH_USER_MODEL,
-        through="TaskCollaborator",
-        related_name="collaborated_tasks",
-        verbose_name="Collaborators",
+        UserProfile, through="TaskCollaborator", related_name="collaborated_tasks"
     )
 
     def __str__(self):
@@ -82,13 +45,13 @@ class Task(models.Model):
 class Comment(models.Model):
     task = models.ForeignKey(Task, related_name="comments", on_delete=models.CASCADE)
     author = models.ForeignKey(
-        settings.AUTH_USER_MODEL, related_name="task_comments", on_delete=models.CASCADE
+        UserProfile, related_name="task_comments", on_delete=models.CASCADE
     )
-    content = models.TextField(verbose_name="Comment Content")
+    content = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f"{self.author.username} on {self.task.title}"
+        return f"{self.author.user.username} on {self.task.title}"
 
 
 class TaskHistory(models.Model):
@@ -96,13 +59,10 @@ class TaskHistory(models.Model):
         Task, related_name="task_history", on_delete=models.CASCADE
     )
     user = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        related_name="user_history",
-        on_delete=models.SET_NULL,
-        null=True,
+        UserProfile, related_name="user_history", on_delete=models.SET_NULL, null=True
     )
     action = models.TextField()
     timestamp = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f"History for {self.task.title} by {self.user}"
+        return f"History for {self.task.title} by {self.user.user.username}"

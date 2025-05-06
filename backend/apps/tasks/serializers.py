@@ -1,16 +1,19 @@
+import datetime
+
 from rest_framework import serializers
-from .models import Task, TaskAssignment, TaskCollaborator, Comment, TaskHistory
-from ..users.models import User
+from .models import Task, TaskCollaborator, Comment, TaskHistory
+from ..users.models import UserProfile
 
 
 class CreateTaskSerializer(serializers.ModelSerializer):
-
     def create(self, validated_data):
-        validated_data["created_by"] = self.context["request"].user
+        validated_data["created_by"] = self.context["request"].user.profile
         task = Task.objects.create(**validated_data)
 
         TaskHistory.objects.create(
-            task=task, user=self.context["request"].user, action="Created task"
+            task=task,
+            user=self.context["request"].user.profile,
+            action="Created task",
         )
         return task
 
@@ -20,7 +23,9 @@ class CreateTaskSerializer(serializers.ModelSerializer):
         instance.save()
 
         TaskHistory.objects.create(
-            task=instance, user=self.context["request"].user, action="Updated task"
+            task=instance,
+            user=self.context["request"].user.profile,
+            action="Updated task",
         )
         return instance
 
@@ -36,50 +41,46 @@ class CreateTaskSerializer(serializers.ModelSerializer):
         )
 
 
-class AssignTaskSerializer(serializers.ModelSerializer):
+class AssignTaskSerializer(serializers.Serializer):
+    user_ids = serializers.IntegerField()
+
+    def create(self, validated_data):
+        task = self.context["task"]
+        profile = UserProfile.objects.get(id=validated_data["user_ids"])
+        TaskHistory.objects.create(
+            task=task,
+            user=self.context["request"].user.profile,
+            action=f"Assigned users: {profile.user.username}",
+        )
+        task.assigned_to = profile if profile else None
+        task.assigned_at = datetime.date.today()
+        task.save()
+        return task
+
+
+class CollaboratorTaskSerializer(serializers.Serializer):
     user_ids = serializers.ListSerializer(
-        allow_null=False, child=serializers.IntegerField()
+        child=serializers.IntegerField(), allow_null=False
     )
 
     def create(self, validated_data):
         task = self.context["task"]
-        users = [User.objects.get(id=user_id) for user_id in validated_data["user_ids"]]
-        TaskHistory.objects.create(
-            task=task,
-            user=self.context["request"].user,
-            action=f"Assigned users: {', '.join([user.username for user in users])}",
-        )
-        TaskAssignment.objects.filter(task=task).delete()
-        return TaskAssignment.objects.bulk_create(
-            [TaskAssignment(task=task, user=user) for user in users]
-        )
+        users = [
+            UserProfile.objects.get(id=user_id)
+            for user_id in validated_data["user_ids"]
+        ]
 
-    class Meta:
-        model = TaskAssignment
-        fields = ["task", "user_ids"]
-
-
-class CollaboratorTaskSerializer(serializers.ModelSerializer):
-    user_ids = serializers.ListSerializer(
-        allow_null=False, child=serializers.IntegerField()
-    )
-
-    def create(self, validated_data):
-        task = self.context["task"]
-        users = [User.objects.get(id=user_id) for user_id in validated_data["user_ids"]]
-        TaskHistory.objects.create(
-            task=task,
-            user=self.context["request"].user,
-            action=f"Added collaborators: {', '.join([user.username for user in users])}",
-        )
         TaskCollaborator.objects.filter(task=task).delete()
-        return TaskCollaborator.objects.bulk_create(
+        TaskCollaborator.objects.bulk_create(
             [TaskCollaborator(task=task, user=user) for user in users]
         )
 
-    class Meta:
-        model = TaskCollaborator
-        fields = ["task", "user_ids"]
+        TaskHistory.objects.create(
+            task=task,
+            user=self.context["request"].user.profile,
+            action=f"Added collaborators: {', '.join([u.user.username for u in users])}",
+        )
+        return task
 
 
 class TaskSerializer(serializers.ModelSerializer):
@@ -90,16 +91,18 @@ class TaskSerializer(serializers.ModelSerializer):
 
 
 class CommentSerializer(serializers.ModelSerializer):
-
     def create(self, validated_data):
         request = self.context["request"]
         task = self.context["task"]
+        author_profile = request.user.profile
         TaskHistory.objects.create(
             task=task,
-            user=request.user,
+            user=author_profile,
             action=f"Added comment: {validated_data['content']}",
         )
-        return Comment.objects.create(task=task, author=request.user, **validated_data)
+        return Comment.objects.create(
+            task=task, author=author_profile, **validated_data
+        )
 
     class Meta:
         model = Comment
@@ -109,7 +112,6 @@ class CommentSerializer(serializers.ModelSerializer):
 
 
 class TaskHistorySerializer(serializers.ModelSerializer):
-
     class Meta:
         model = TaskHistory
         depth = 2

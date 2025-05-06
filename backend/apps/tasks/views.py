@@ -36,10 +36,10 @@ class TaskViewSet(viewsets.ModelViewSet):
         return self.serializer_classes.get(self.request.method.lower(), TaskSerializer)
 
     def get_queryset(self):
-        user = self.request.user
+        user_profile = self.request.user.profile
         if not IsManagerOrAdmin().has_permission(self.request, self):
             return Task.objects.filter(
-                Q(assigned_to=user) | Q(collaborators=user)
+                Q(assigned_to=user_profile) | Q(collaborators=user_profile)
             ).distinct()
         return Task.objects.all()
 
@@ -59,7 +59,6 @@ class TaskViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=["post"])
     def assign(self, request, pk=None):
-        print("data = ", request.data)
         task = self.get_object()
         serializer = AssignTaskSerializer(
             data=request.data, context={"task": task, "request": request}
@@ -98,7 +97,6 @@ class TaskViewSet(viewsets.ModelViewSet):
             serializer.is_valid(raise_exception=True)
             serializer.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
-        raise
 
     @action(detail=True, methods=["get"], url_path="history")
     def history(self, request, pk=None):

@@ -1,21 +1,31 @@
 from django.contrib.auth import authenticate
+from django.contrib.auth.password_validation import validate_password
 from rest_framework import serializers
 from rest_framework_simplejwt.tokens import RefreshToken
-
-from apps.tasks.serializers import TaskSerializer
-from apps.users.models import User
+from apps.users.models import User, UserProfile
 
 
 class RegisterSerializer(serializers.ModelSerializer):
-
-    def create(self, validated_data):
-        user = User.objects.create_user(**validated_data)
-        return user
+    username = serializers.CharField(write_only=True)
+    password = serializers.CharField(write_only=True)
+    email = serializers.EmailField(write_only=True)
+    role = serializers.CharField(write_only=True)
 
     class Meta:
-        model = User
+        model = UserProfile
         fields = ["username", "password", "email", "role"]
-        extra_kwargs = {"password": {"write_only": True}}
+
+    def create(self, validated_data):
+        username = validated_data.pop("username")
+        password = validated_data.pop("password")
+        email = validated_data.pop("email")
+        role = validated_data.pop("role", "TEAM_MEMBER")
+
+        user = User.objects.create_user(
+            username=username, email=email, password=password
+        )
+        profile = UserProfile.objects.create(user=user, role=role)
+        return profile
 
 
 class LoginSerializer(serializers.Serializer):
@@ -39,23 +49,13 @@ class LoginSerializer(serializers.Serializer):
 
 
 class UserSerializer(serializers.ModelSerializer):
+    username = serializers.CharField(source="user.username")
+    email = serializers.EmailField(source="user.email")
     assigned_tasks = serializers.SerializerMethodField()
     collaborated_tasks = serializers.SerializerMethodField()
 
-    def get_assigned_tasks(self, obj):
-        return obj.assigned_tasks.count()
-
-    def get_collaborated_tasks(self, obj):
-        return obj.collaborated_tasks.count()
-
-    def update(self, instance, validated_data):
-        for attr, value in validated_data.items():
-            setattr(instance, attr, value)
-        instance.save()
-        return instance
-
     class Meta:
-        model = User
+        model = UserProfile
         fields = [
             "id",
             "username",
@@ -65,3 +65,36 @@ class UserSerializer(serializers.ModelSerializer):
             "collaborated_tasks",
         ]
         read_only_fields = ["id", "assigned_tasks", "collaborated_tasks"]
+
+    def get_assigned_tasks(self, obj):
+        return obj.assigned_tasks.count()
+
+    def get_collaborated_tasks(self, obj):
+        return obj.collaborated_tasks.count()
+
+    def update(self, instance, validated_data):
+        user_data = validated_data.pop("user", {})
+        user = instance.user
+        for attr, value in user_data.items():
+            setattr(user, attr, value)
+        user.save()
+
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        instance.save()
+
+        return instance
+
+
+class ChangePasswordSerializer(serializers.Serializer):
+    new_password = serializers.CharField(required=True)
+
+    def validate_new_password(self, value):
+        validate_password(value)
+        return value
+
+    def save(self):
+        user = self.context["user"]
+        user.set_password(self.validated_data["new_password"])
+        user.save()
+        return user
