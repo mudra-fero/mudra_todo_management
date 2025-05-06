@@ -85,3 +85,11 @@ class LoginViewSet(viewsets.ModelViewSet):
     queryset = UserProfile.objects.all()
     serializer_class = LoginSerializer
     http_method_names = ["post"]
+
+
+class CurrentUserViewSet(viewsets.ModelViewSet):
+    serializer_class = UserSerializer
+    http_method_names = ["get"]
+
+    def get_queryset(self):
+        return UserProfile.objects.filter(user=self.request.user)
