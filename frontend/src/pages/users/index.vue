@@ -66,8 +66,8 @@ function getColor(role) {
   else if (role == "MANAGER") return 'warning'
   else return 'success'
 }
-  
-const fetchUsers = async (params) => {  
+
+const fetchUsers = async (params) => {
   params = {
     ...params,
     search: searchQuery.value,
@@ -126,8 +126,8 @@ async function submitHandler() {
               <v-text-field width="30vw" v-model="searchQuery" variant="outlined" placeholder="Search user ...." />
             </v-col>
             <v-col cols="5">
-              <v-select clearable chips placeholder="Select Role" v-model="filterQuery" variant="outlined" :items="userRoleChoices" item-title="value"
-                item-value="key" multiple></v-select>
+              <v-select clearable chips placeholder="Select Role" v-model="filterQuery" variant="outlined"
+                :items="userRoleChoices" item-title="value" item-value="key" multiple></v-select>
             </v-col>
             <v-col cols="2" class="mt-3">
               <v-btn color="#3E4E3C" density="comfortable" @click="showInviteDialog = true">

@@ -12,8 +12,10 @@ const role = ref('');
 const fetchUser = async () => {
   try {
     const response = await userServices.getCurrentUser();
-    username.value = response.data.results[0].username;
-    role.value = response.data.results[0].role;
+    console.log(response);
+
+    username.value = response.data[0].username;
+    role.value = response.data[0].role;
   } catch (error) {
     toastUtility.showError(error);
   }
