@@ -7,7 +7,7 @@ from rest_framework.response import Response
 
 from apps.tasks.pagination import CustomUserPagination
 from .filters import TaskFilter
-from .models import Task, Comment
+from .models import Task, Comment, Notification
 from .serializers import (
     CreateTaskSerializer,
     TaskSerializer,
@@ -15,6 +15,7 @@ from .serializers import (
     CollaboratorTaskSerializer,
     CommentSerializer,
     TaskHistorySerializer,
+    NotificationSerializer,
 )
 from .permissions import IsManagerOrAdmin, IsAssignedOrPrivileged
 
@@ -63,11 +64,13 @@ class TaskViewSet(viewsets.ModelViewSet):
         serializer = AssignTaskSerializer(
             data=request.data, context={"task": task, "request": request}
         )
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
-        return Response(
-            {"detail": "Task assigned successfully."}, status=status.HTTP_200_OK
-        )
+        if serializer.is_valid():
+            serializer.save()
+            return Response(
+                {"detail": "Task assigned successfully."}, status=status.HTTP_200_OK
+            )
+        else:
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     @action(detail=True, methods=["post"])
     def collaborators(self, request, pk=None):
@@ -104,3 +107,19 @@ class TaskViewSet(viewsets.ModelViewSet):
         history_entries = task.task_history.all().order_by("-id")
         serializer = TaskHistorySerializer(history_entries, many=True)
         return Response(serializer.data)
+
+
+class NotificationViewSet(viewsets.ModelViewSet):
+    pagination_class = None
+    queryset = Notification.objects.all()
+    serializer_class = NotificationSerializer
+
+    @action(detail=False, methods=["post"], url_path="mark-as-read")
+    def mark_as_read(self, request):
+        user_profile = request.user.profile
+        Notification.objects.filter(user=user_profile, is_read=False).update(
+            is_read=True
+        )
+        return Response(
+            {"detail": "All notifications marked as read."}, status=status.HTTP_200_OK
+        )

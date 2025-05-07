@@ -16,16 +16,12 @@ class RegisterSerializer(serializers.ModelSerializer):
         fields = ["username", "password", "email", "role"]
 
     def create(self, validated_data):
-        username = validated_data.pop("username")
-        password = validated_data.pop("password")
-        email = validated_data.pop("email")
-        role = validated_data.pop("role", "TEAM_MEMBER")
-
         user = User.objects.create_user(
-            username=username, email=email, password=password
+            username=validated_data.pop("username"),
+            email=validated_data.pop("email"),
+            password=validated_data.pop("password"),
         )
-        profile = UserProfile.objects.create(user=user, role=role)
-        return profile
+        return UserProfile.objects.create(user=user, **validated_data)
 
 
 class LoginSerializer(serializers.Serializer):
@@ -43,9 +39,6 @@ class LoginSerializer(serializers.Serializer):
                 "refresh": str(refresh),
             }
         raise serializers.ValidationError("Invalid credentials")
-
-    def create(self, validated_data):
-        return validated_data
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -70,19 +63,16 @@ class UserSerializer(serializers.ModelSerializer):
         return obj.assigned_tasks.count()
 
     def get_collaborated_tasks(self, obj):
-        return obj.collaborated_tasks.count()
+        return obj.task_collaborations.values("task").distinct().count()
 
     def update(self, instance, validated_data):
         user_data = validated_data.pop("user", {})
-        user = instance.user
         for attr, value in user_data.items():
-            setattr(user, attr, value)
-        user.save()
-
+            setattr(instance.user, attr, value)
+        instance.user.save()
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
         instance.save()
-
         return instance
 
 

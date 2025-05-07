@@ -90,6 +90,7 @@ class LoginViewSet(viewsets.ModelViewSet):
 class CurrentUserViewSet(viewsets.ModelViewSet):
     serializer_class = UserSerializer
     http_method_names = ["get"]
+    pagination_class = None
 
     def get_queryset(self):
         return UserProfile.objects.filter(user=self.request.user)
