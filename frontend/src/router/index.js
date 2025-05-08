@@ -23,6 +23,12 @@ const router = createRouter({
           component: () => import('@/pages/users/index.vue'),
           meta: { requiresAuth: true },
         },
+        {
+          path: '/tasks',
+          name: 'tasks',
+          component: () => import('@/pages/tasks/index.vue'),
+          meta: { requiresAuth: true },
+        },
       ]
     },
     

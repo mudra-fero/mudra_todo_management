@@ -12,8 +12,6 @@ const role = ref('');
 const fetchUser = async () => {
   try {
     const response = await userServices.getCurrentUser();
-    console.log(response);
-
     username.value = response.data[0].username;
     role.value = response.data[0].role;
   } catch (error) {

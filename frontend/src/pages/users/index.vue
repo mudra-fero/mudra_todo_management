@@ -141,7 +141,7 @@ async function submitHandler() {
 
       <div class="d-flex justify-center align-center">
         <v-card width="75vw" elevation="16">
-          <v-data-table-server class="user-table" v-model:items-per-page="itemsPerPage" :headers="headers"
+          <v-data-table-server height="60vh" class="user-table" v-model:items-per-page="itemsPerPage" :headers="headers"
             :items="serverItems" :items-length="totalItems" :loading="loading" item-value="name"
             @update:options="loadItems">
 
