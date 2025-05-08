@@ -16,11 +16,23 @@ class BaseModelWithLogs(BaseModel):
             action=message,
         )
 
-    def add_notification(self, message, user):
-        Notification.objects.create(
-            user=user,
-            message=message,
+    def add_notification(self, task, message, acting_user):
+        task = (
+            Task.objects.select_related("assigned_to", "created_by")
+            .prefetch_related("task_collaborations")
+            .get(id=task.id)
         )
+        user_ids = set()
+        if task.assigned_to:
+            user_ids.add(task.assigned_to.id)
+        if task.created_by:
+            user_ids.add(task.created_by.id)
+        user_ids.update(task.task_collaborations.values_list("user_id", flat=True))
+        user_ids.discard(acting_user.id)
+        notifications = [
+            Notification(user_id=user_id, message=message) for user_id in user_ids
+        ]
+        Notification.objects.bulk_create(notifications)
 
 
 class Task(BaseModelWithLogs):

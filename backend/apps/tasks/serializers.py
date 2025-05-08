@@ -23,7 +23,9 @@ class CreateTaskSerializer(serializers.ModelSerializer):
             task=task, user=self.context["request"].user.profile, message="Created task"
         )
         task.add_notification(
-            user=self.context["request"].user.profile, message="Created task"
+            task=task,
+            acting_user=self.context["request"].user.profile,
+            message="Created task",
         )
         return task
 
@@ -37,7 +39,9 @@ class CreateTaskSerializer(serializers.ModelSerializer):
             message="Updated task",
         )
         instance.add_notification(
-            user=self.context["request"].user.profile, message="Updated task"
+            task=instance,
+            acting_user=self.context["request"].user.profile,
+            message="Updated task",
         )
         return instance
 
@@ -60,7 +64,8 @@ class AssignTaskSerializer(serializers.ModelSerializer):
             message=f"Assigned user: {profile.user.username}",
         )
         task.add_notification(
-            user=self.context["request"].user.profile,
+            task=task,
+            acting_user=self.context["request"].user.profile,
             message=f"Assigned user: {profile.user.username}",
         )
         return task
@@ -88,7 +93,8 @@ class CollaboratorTaskSerializer(serializers.ModelSerializer):
             message=f"Added collaborators: {', '.join([u.user.username for u in users])}",
         )
         task.add_notification(
-            user=self.context["request"].user.profile,
+            task=task,
+            acting_user=self.context["request"].user.profile,
             message=f"Added collaborators: {', '.join([u.user.username for u in users])}",
         )
         return task
@@ -134,7 +140,8 @@ class CommentSerializer(serializers.ModelSerializer):
             message=f"Added comment: {validated_data['content']}",
         )
         task.add_notification(
-            user=self.context["request"].user.profile,
+            task=task,
+            acting_user=self.context["request"].user.profile,
             message=f"Added comment: {validated_data['content']}",
         )
         return Comment.objects.create(

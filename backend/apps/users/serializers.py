@@ -40,6 +40,9 @@ class LoginSerializer(serializers.Serializer):
             }
         raise serializers.ValidationError("Invalid credentials")
 
+    def create(self, validated_data):
+        return validated_data
+
 
 class UserSerializer(serializers.ModelSerializer):
     username = serializers.CharField(source="user.username")

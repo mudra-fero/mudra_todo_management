@@ -1,11 +1,12 @@
 from django.db.models import Q
 from django_filters.rest_framework import DjangoFilterBackend
-from rest_framework import viewsets, status
+from rest_framework import viewsets, status, filters
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from apps.tasks.pagination import CustomUserPagination
+from .base import BaseViewSet
 from .filters import TaskFilter
 from .models import Task, Comment, Notification
 from .serializers import (
@@ -20,21 +21,19 @@ from .serializers import (
 from .permissions import IsManagerOrAdmin, IsAssignedOrPrivileged
 
 
-class TaskViewSet(viewsets.ModelViewSet):
+class TaskViewSet(BaseViewSet):
     pagination_class = CustomUserPagination
     filter_backends = [DjangoFilterBackend]
     filterset_class = TaskFilter
 
-    serializer_classes = {
-        "get": TaskSerializer,
-        "post": CreateTaskSerializer,
-        "put": CreateTaskSerializer,
-        "patch": CreateTaskSerializer,
-        "delete": TaskSerializer,
+    dynamic_serializers = {
+        "list": TaskSerializer,
+        "retrieve": TaskSerializer,
+        "create": CreateTaskSerializer,
+        "update": CreateTaskSerializer,
+        "partial_update": CreateTaskSerializer,
+        "destroy": TaskSerializer,
     }
-
-    def get_serializer_class(self):
-        return self.serializer_classes.get(self.request.method.lower(), TaskSerializer)
 
     def get_queryset(self):
         user_profile = self.request.user.profile
