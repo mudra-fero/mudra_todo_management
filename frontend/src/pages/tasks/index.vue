@@ -2,6 +2,8 @@
 import { ref, watch, onMounted } from 'vue'
 import { taskServices } from '@/services/tasks'
 import { toastUtility } from '@/utilities/toast-utility'
+import '@vuepic/vue-datepicker/dist/main.css';
+import DateRangePicker from '@/shared/DateRangePicker.vue';
 import { taskPriorityChoices, taskLifecycleStatusChoices } from '@/utilities/choice-filter-utility'
 
 const tasks = ref([])
@@ -12,38 +14,9 @@ const itemsPerPage = ref(5)
 const searchQuery = ref('')
 const filterpriorityQuery = ref([])
 const filterStatusQuery = ref([])
-const filterQuery = ref({})
-const dateMenu = ref(false)
-const dateRange = ref({ start: null, end: null })
-const formattedDateRange = ref('')
-
-const clearDateRange = () => {
-  dateRange.value = { start: null, end: null }
-  formattedDateRange.value = ''
-  filterQuery.value = {
-    ...filterQuery.value,
-    start_date: null,
-    end_date: null,
-  }
-}
-
-const updateDateRange = () => {
-  const { start, end } = dateRange.value
-  if (start && end) {
-    formattedDateRange.value = `${new Date(start).toLocaleDateString()} - ${new Date(end).toLocaleDateString()}`
-    filterQuery.value = {
-      ...filterQuery.value,
-      start_date: start,
-      end_date: end,
-    }
-  }
-}
-
-watch([filterpriorityQuery, filterStatusQuery], () => {
-  filterQuery.value = {
-    priority: filterpriorityQuery.value,
-    lifecycle_stage: filterStatusQuery.value,
-  }
+const selectedDateRange = ref({
+  start_date: null,
+  end_date: null,
 })
 
 const formatDate = (date) => new Date(date).toLocaleDateString()
@@ -74,8 +47,10 @@ const fetchTasks = async () => {
   try {
     const response = await taskServices.getTaskList({
       search: searchQuery.value,
-      filter: filterQuery.value,
-      lifecycle_stage: filterQuery.value.lifecycle_stage,
+      priority: filterpriorityQuery.value,
+      lifecycle_stage: filterStatusQuery.value,
+      start_date: selectedDateRange.value.start_date,
+      end_date: selectedDateRange.value.end_date,
       page: currentPage.value,
       page_size: itemsPerPage.value,
     })
@@ -88,7 +63,7 @@ const fetchTasks = async () => {
   }
 }
 
-watch([searchQuery, filterQuery, currentPage], fetchTasks)
+watch([searchQuery, filterpriorityQuery, filterStatusQuery, selectedDateRange, currentPage, itemsPerPage], fetchTasks)
 onMounted(fetchTasks)
 </script>
 
@@ -108,21 +83,8 @@ onMounted(fetchTasks)
           </v-col>
 
           <v-col cols="4">
-            <v-menu v-model="dateMenu" :close-on-content-click="false" transition="scale-transition" offset-y
-              min-width="330px">
-              <template #activator="{ props }">
-                <v-text-field v-bind="props" v-model="formattedDateRange" placeholder="Filter by date"
-                  variant="outlined" readonly clearable dense @click:clear="clearDateRange" />
-              </template>
-
-              <v-card>
-                <v-date-picker v-model="dateRange" @change="updateDateRange" />
-                <v-card-actions>
-                  <v-spacer />
-                  <v-btn text @click="dateMenu = false">Close</v-btn>
-                </v-card-actions>
-              </v-card>
-            </v-menu>
+            <DateRangePicker id="task-date" name="task-date" placeholder="Filter by date range" :isRequired="false"
+              :modelValue="selectedDateRange" @update:modelValue="val => selectedDateRange = val" />
           </v-col>
         </v-row>
 
@@ -145,10 +107,10 @@ onMounted(fetchTasks)
         <v-row justify="center">
           <!-- Task Cards -->
           <v-col cols="12">
-            <v-row>
+            <v-row >
               <v-col cols="12" v-for="(task, index) in tasks" :key="index">
                 <v-card :elevation="6" class="pa-4 rounded-xl"
-                  style="background-color: #F5F3EF; border-left: 6px solid #3E4E3C;">
+                  style="background-color: #F5F3EF; color: #3E4E3C; border-left: 6px solid #3E4E3C;">
 
                   <div class="d-flex justify-space-between align-center mb-2">
                     <div>
@@ -223,11 +185,26 @@ onMounted(fetchTasks)
             </v-row>
 
             <!-- Pagination -->
-            <v-row justify="center" class="mt-2">
+            <v-row class="mb-4 d-flex justify-end align-center">
               <v-col cols="auto">
-                <v-pagination v-model="currentPage" :length="Math.ceil(totalItems / itemsPerPage)" color="#3E4E3C" />
+                <span><strong>Items per page:</strong></span>
+              </v-col>
+              <v-col cols="auto">
+                <v-select v-model="itemsPerPage" :items="[5, 10, 20, 50]" dense hide-details variant="outlined"
+                  style="max-width: 100px;" />
+              </v-col>
+              <v-col cols="auto">
+                <span>{{ (currentPage - 1) * itemsPerPage + 1 }} -
+                  {{ Math.min(currentPage * itemsPerPage, totalItems) }}
+                  of {{ totalItems }}
+                </span>
+              </v-col>
+              <v-col cols="auto">
+                <v-pagination v-model="currentPage" :length="Math.ceil(totalItems / itemsPerPage)" color="#3E4E3C"
+                  density="comfortable" />
               </v-col>
             </v-row>
+
           </v-col>
         </v-row>
       </v-container>
