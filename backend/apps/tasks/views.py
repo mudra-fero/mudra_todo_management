@@ -1,5 +1,5 @@
 from django.db.models import Q
-from django_filters.rest_framework import DjangoFilterBackend
+from django.utils.dateparse import parse_date
 from rest_framework import viewsets, status, filters
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
@@ -7,7 +7,6 @@ from rest_framework.response import Response
 
 from apps.tasks.pagination import CustomUserPagination
 from .base import BaseViewSet
-from .filters import TaskFilter
 from .models import Task, Comment, Notification
 from .serializers import (
     CreateTaskSerializer,
@@ -23,8 +22,9 @@ from .permissions import IsManagerOrAdmin, IsAssignedOrPrivileged
 
 class TaskViewSet(BaseViewSet):
     pagination_class = CustomUserPagination
-    filter_backends = [DjangoFilterBackend]
-    filterset_class = TaskFilter
+    filter_backends = [filters.SearchFilter]
+    search_fields = ["title", "description"]
+    queryset = Task.objects.all()
 
     dynamic_serializers = {
         "list": TaskSerializer,
@@ -36,12 +36,30 @@ class TaskViewSet(BaseViewSet):
     }
 
     def get_queryset(self):
-        user_profile = self.request.user.profile
-        if not IsManagerOrAdmin().has_permission(self.request, self):
-            return Task.objects.filter(
+        queryset = super().get_queryset()
+        request = self.request
+        user_profile = request.user.profile
+
+        if not IsManagerOrAdmin().has_permission(request, self):
+            queryset = queryset.filter(
                 Q(assigned_to=user_profile) | Q(collaborators=user_profile)
             ).distinct()
-        return Task.objects.all()
+
+        priorities = request.query_params.getlist("priority[]")
+        statuses = request.query_params.getlist("lifecycle_stage[]")
+        start_date = request.query_params.get("start_date")
+        end_date = request.query_params.get("end_date")
+
+        if priorities:
+            queryset = queryset.filter(priority__in=priorities)
+        if statuses:
+            queryset = queryset.filter(lifecycle_stage__in=statuses)
+        if start_date and end_date:
+            queryset = queryset.filter(
+                deadline__range=[parse_date(start_date), parse_date(end_date)]
+            )
+
+        return queryset
 
     def get_permissions(self):
         if self.action in [
