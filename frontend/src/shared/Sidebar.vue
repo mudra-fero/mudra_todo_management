@@ -10,10 +10,10 @@ const emit = defineEmits(['update:drawer'])
       app
       :model-value="drawer"
       @update:model-value="$emit('update:drawer', $event)"
-      color="#A8BBA2"
+      color="#3E4E3C"
     >
       <v-list dense>
-        <v-list-item prepend-icon="mdi-view-dashboard" title="Dashboard" value="dashboard"></v-list-item>
+        <v-list-item prepend-icon="mdi-view-dashboard" title="Tasks" :to="{ name: 'tasks' }" link></v-list-item>
         <v-list-item prepend-icon="mdi-account" title="Users" :to="{ name: 'users' }" link></v-list-item>
       </v-list>
     </v-navigation-drawer>
