@@ -68,24 +68,28 @@ function getColor(role) {
 }
 
 const fetchUsers = async (params) => {
+  const page = params.page || 1;
+  const limit = itemsPerPage.value;
+
   params = {
     ...params,
     search: searchQuery.value,
     filter: filterQuery.value,
-    page: params.page,
-    page_size: itemsPerPage.value,
-  }
+    limit: limit,
+    offset: (page - 1) * limit,
+  };
+
   try {
     const response = await userServices.getUserList(params);
     return {
       items: response.data.results,
       total: response.data.count,
-    }
+    };
   } catch (error) {
     toastUtility.showError(error);
-  } finally {
   }
 };
+
 
 function loadItems({ page, itemsPerPage, sortBy }) {
   loading.value = true

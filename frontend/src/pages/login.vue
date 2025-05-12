@@ -35,7 +35,7 @@ const submit = async () => {
     try {
         let { data } = await authenticationService.login(loginForm);
         localStorageUtility.setItemToLocalStorage("access_token", data.access);
-        router.push({ name: "users" });
+        router.push({ name: "tasks" });
     } catch (error) {
         toastUtility.showError(error);
     } finally {

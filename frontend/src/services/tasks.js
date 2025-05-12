@@ -18,4 +18,34 @@ export const taskServices = {
             throw messages;
         }
     },
+    async addTask(payload) {
+        try {
+            const response = await axiosUtility.getResponse({
+                apiName: `/tasks/`,
+                methodType: 'post',
+                payload: payload,
+                queryParams: {},
+                headers: {}
+            });
+            return response;
+        } catch (error) {
+            const { messages } = errorHandlerUtility.handleError(error);
+            throw messages;
+        }
+    },
+    async updateTask(id, payload) {
+        try {
+            const response = await axiosUtility.getResponse({
+                apiName: `/tasks/${id}/`,
+                methodType: 'put',
+                payload: payload,
+                queryParams: {},
+                headers: {}
+            });
+            return response;
+        } catch (error) {
+            const { messages } = errorHandlerUtility.handleError(error);
+            throw messages;
+        }
+    },
 }

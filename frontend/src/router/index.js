@@ -41,7 +41,7 @@ router.beforeEach((to, from, next) => {
     return next('/')
   }
   if ((to.path === '/' || to.path === '/register') && token) {
-    return next('/users')
+    return next('/tasks')
   }
   next()
 })
