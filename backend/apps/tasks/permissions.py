@@ -14,11 +14,15 @@ class IsManager(BasePermission):
 
 class IsAssignedOrPrivileged(BasePermission):
     def has_object_permission(self, request, view, obj):
-        return (
-            request.user == obj.created_by
-            or request.user.profile in obj.assigned_to.all()
-            or request.user.profile in obj.collaborators.all()
-        )
+        user_profile = getattr(request.user, "profile", None)
+        if not user_profile:
+            return False
+
+        is_creator = obj.created_by == user_profile
+        is_assigned = obj.assigned_to == user_profile if obj.assigned_to else False
+        is_collaborator = obj.task_collaborations.filter(user=user_profile).exists()
+
+        return is_creator or is_assigned or is_collaborator
 
 
 class IsAuthorOrAdmin(BasePermission):

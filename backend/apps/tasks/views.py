@@ -106,7 +106,7 @@ class TaskViewSet(BaseViewSet):
         task = self.get_object()
 
         if request.method == "GET":
-            comments = Comment.objects.filter(task=task)
+            comments = Comment.objects.filter(task=task).order_by("-id")
             serializer = CommentSerializer(comments, many=True)
             return Response(serializer.data)
 
@@ -117,6 +117,33 @@ class TaskViewSet(BaseViewSet):
             serializer.is_valid(raise_exception=True)
             serializer.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+    @action(detail=True, methods=["delete"], url_path="comments/(?P<comment_id>[^/.]+)")
+    def delete_comment(self, request, pk=None, comment_id=None):
+        task = self.get_object()
+
+        try:
+            print(task)
+            print(comment_id)
+            comment = Comment.objects.get(id=comment_id, task=task)
+        except Comment.DoesNotExist:
+            return Response(
+                {"detail": "Comment not found."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        comment.delete()
+        task.add_history(
+            task=task,
+            user=request.user.profile,
+            message=f"deleted comment of task {task.title} by {request.user.username}",
+        )
+        task.add_notification(
+            task=task,
+            acting_user=request.user.profile,
+            message=f"deleted comment of task {task.title} by {request.user.username}",
+        )
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
     @action(detail=True, methods=["get"], url_path="history")
     def history(self, request, pk=None):
