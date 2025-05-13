@@ -48,4 +48,94 @@ export const taskServices = {
             throw messages;
         }
     },
+    async deleteTask(id) {
+        try {
+            const response = await axiosUtility.getResponse({
+                apiName: `/tasks/${id}/`,
+                methodType: 'delete',
+                payload: {},
+                queryParams: {},
+                headers: {}
+            });
+            return response;
+        } catch (error) {
+            const { messages } = errorHandlerUtility.handleError(error);
+            throw messages;
+        }
+    },
+    async getTask(id) {
+        try {
+            const response = await axiosUtility.getResponse({
+                apiName: `/tasks/${id}/`,
+                methodType: 'get',
+                payload: {},
+                queryParams: {},
+                headers: {}
+            });
+            return response;
+        } catch (error) {
+            const { messages } = errorHandlerUtility.handleError(error);
+            throw messages;
+        }
+    },
+    async getCommentsList(id) {
+        try {
+            const response = await axiosUtility.getResponse({
+                apiName: `/tasks/${id}/comments/`,
+                methodType: 'get',
+                payload: {},
+                queryParams: {},
+                headers: {}
+            });
+            return response;
+        } catch (error) {
+            const { messages } = errorHandlerUtility.handleError(error);
+            throw messages;
+        }
+    },
+    async addComments(id, payload) {
+        try {
+            const response = await axiosUtility.getResponse({
+                apiName: `/tasks/${id}/comments/`,
+                methodType: 'post',
+                payload: payload,
+                queryParams: {},
+                headers: {}
+            });
+            return response;
+        } catch (error) {
+            const { messages } = errorHandlerUtility.handleError(error);
+            throw messages;
+        }
+    },
+    async getHistoryList(id) {
+        try {
+            const response = await axiosUtility.getResponse({
+                apiName: `/tasks/${id}/history/`,
+                methodType: 'get',
+                payload: {},
+                queryParams: {},
+                headers: {}
+            });
+            return response;
+        } catch (error) {
+            const { messages } = errorHandlerUtility.handleError(error);
+            throw messages;
+        }
+    },
+    async deleteComment(taskId, commentId) {
+        try {
+            const response = await axiosUtility.getResponse({
+                apiName: `/tasks/${taskId}/comments/${commentId}/`,
+                methodType: 'delete',
+                payload: {},
+                queryParams: {},
+                headers: {}
+            });
+            return response;
+        } catch (error) {
+            const { messages } = errorHandlerUtility.handleError(error);
+            throw messages;
+        }
+    },
 }

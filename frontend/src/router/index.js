@@ -29,6 +29,19 @@ const router = createRouter({
           component: () => import('@/pages/tasks/index.vue'),
           meta: { requiresAuth: true },
         },
+        {
+          path: '/tasks',
+          name: 'tasks',
+          component: () => import('@/pages/tasks/index.vue'),
+          meta: { requiresAuth: true },
+        },
+        {
+          path: '/tasks/:id',
+          name: 'TaskDetail',
+          component: () => import('@/pages/tasks/TaskDetail.vue'),
+          meta: { requiresAuth: true },
+        },
+        
       ]
     },
     

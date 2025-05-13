@@ -5,8 +5,11 @@ import { toastUtility } from '@/utilities/toast-utility'
 import '@vuepic/vue-datepicker/dist/main.css';
 import DateRangePicker from '@/shared/DateRangePicker.vue';
 import AddEditTaskDialog from './components/add-edit-task.vue'
+import DeleteDialog from './components/delete-task.vue';
 import { taskPriorityChoices, taskLifecycleStatusChoices } from '@/utilities/choice-filter-utility'
+import { useRouter } from 'vue-router';
 
+const router = useRouter();
 const tasks = ref([])
 const loading = ref(false)
 const totalItems = ref(0)
@@ -95,6 +98,23 @@ const submitHandler = async () => {
   fetchTasks()
 }
 
+const showDeleteDialog = ref(false)
+const taskToDelete = ref(null)
+
+function deleteUser(task) {
+  taskToDelete.value = task
+  showDeleteDialog.value = true
+}
+
+function handleDeleteConfirm() {
+  showDeleteDialog.value = false
+  fetchTasks()
+}
+
+function goToTaskDetails(task) {  
+  router.push({ name: 'TaskDetail', params: { id: task.id } })
+}
+
 function handleItemsPerPageChange(newSize) {
   currentPage.value = 1;
   itemsPerPage.value = newSize;
@@ -164,7 +184,7 @@ onMounted(fetchTasks)
             <div v-if="isCardView">
               <v-row>
                 <v-col cols="12" v-for="(task, index) in tasks" :key="index">
-                  <v-card :elevation="6" class="pa-4 rounded-xl"
+                  <v-card :elevation="6" class="pa-4 rounded-xl" @click="goToTaskDetails(task)"
                     style="background-color: #F5F3EF; color: #3E4E3C; border-left: 6px solid #3E4E3C;">
 
                     <div class="d-flex justify-space-between align-center mb-2">
@@ -244,7 +264,7 @@ onMounted(fetchTasks)
             <div v-else>
               <!-- Table View -->
               <v-card class="mb-3">
-                <v-data-table :page="currentPage" :items-per-page="itemsPerPage" :headers="tableHeaders" :items="tasks"
+                <v-data-table @click:row="goToTaskDetails" :page="currentPage" :items-per-page="itemsPerPage" :headers="tableHeaders" :items="tasks"
                   :loading="loading" class="task-table" @update:modelValue=fetchTasks
                   @update:items-per-page="handleItemsPerPageChange" hide-default-footer>
 
@@ -341,6 +361,7 @@ onMounted(fetchTasks)
       </v-container>
       <AddEditTaskDialog v-model="showInviteDialog" :editTask="editingTask" @submit="submitHandler"
         @update:modelValue="handleDialogClose" />
+      <DeleteDialog v-model="showDeleteDialog" :taskId="taskToDelete?.id" @submit="handleDeleteConfirm" />
     </v-main>
   </v-app>
 </template>
