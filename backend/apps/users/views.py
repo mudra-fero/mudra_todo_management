@@ -82,6 +82,7 @@ class UserViewSet(viewsets.ModelViewSet):
 
 
 class LoginViewSet(viewsets.ModelViewSet):
+    pagination_class = None
     queryset = UserProfile.objects.all()
     serializer_class = LoginSerializer
     http_method_names = ["post"]
@@ -94,3 +95,23 @@ class CurrentUserViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         return UserProfile.objects.filter(user=self.request.user)
+
+
+class ListAllUserViewSet(viewsets.ModelViewSet):
+    filter_backends = [filters.SearchFilter]
+    search_fields = ["user__username", "user__email"]
+    serializer_class = UserSerializer
+    pagination_class = None
+
+    def get_queryset(self):
+        queryset = UserProfile.objects.select_related("user").all()
+        roles = self.request.query_params.getlist("filter[]")
+        if roles:
+            roles = [role.upper() for role in roles]
+            queryset = queryset.filter(role__in=roles)
+        return queryset
+
+    def get_permissions(self):
+        if self.action == "list":
+            return [IsAdminOrManager()]
+        return [permissions.IsAuthenticated()]

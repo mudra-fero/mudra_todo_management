@@ -106,7 +106,7 @@ class TaskViewSet(BaseViewSet):
         task = self.get_object()
 
         if request.method == "GET":
-            comments = Comment.objects.filter(task=task).order_by("-id")
+            comments = Comment.objects.filter(task=task).order_by("id")
             serializer = CommentSerializer(comments, many=True)
             return Response(serializer.data)
 
@@ -148,7 +148,7 @@ class TaskViewSet(BaseViewSet):
     @action(detail=True, methods=["get"], url_path="history")
     def history(self, request, pk=None):
         task = self.get_object()
-        history_entries = task.task_history.all().order_by("-id")
+        history_entries = task.task_history.all().order_by("id")
         serializer = TaskHistorySerializer(history_entries, many=True)
         return Response(serializer.data)
 

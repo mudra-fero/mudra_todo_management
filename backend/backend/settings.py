@@ -44,6 +44,7 @@ INSTALLED_APPS = [
     "apps.tasks",
     "django_filters",
     "corsheaders",
+    "django.contrib.humanize",
 ]
 
 REST_FRAMEWORK = {

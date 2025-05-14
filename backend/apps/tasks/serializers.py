@@ -1,7 +1,11 @@
+from datetime import datetime
+
+from django.utils.timezone import make_aware, get_current_timezone
 from rest_framework import serializers
 from .models import Task, TaskCollaborator, Comment, TaskHistory, Notification
 from ..users.models import UserProfile
 from ..users.serializers import UserSerializer
+from django.contrib.humanize.templatetags.humanize import naturaltime
 
 
 class CreateTaskSerializer(serializers.ModelSerializer):
@@ -110,6 +114,8 @@ class TaskCollaboratorSerializer(serializers.ModelSerializer):
 
 class TaskSerializer(serializers.ModelSerializer):
     collaborated_with = serializers.SerializerMethodField()
+    deadline_humanized = serializers.SerializerMethodField()
+    created_humanized = serializers.SerializerMethodField()
 
     class Meta:
         model = Task
@@ -122,13 +128,36 @@ class TaskSerializer(serializers.ModelSerializer):
             collaborators, many=True, context=self.context
         ).data
 
+    def get_deadline_humanized(self, obj):
+        if obj.deadline:
+            dt = datetime.combine(obj.deadline, datetime.min.time())
+            aware_dt = make_aware(dt, timezone=get_current_timezone())
+            return naturaltime(aware_dt)
+        return None
+
+    def get_created_humanized(self, obj):
+        if obj.created:
+            dt = datetime.combine(obj.created, datetime.min.time())
+            aware_dt = make_aware(dt, timezone=get_current_timezone())
+            return naturaltime(aware_dt)
+        return None
+
 
 class CommentSerializer(serializers.ModelSerializer):
+    created_humanized = serializers.SerializerMethodField()
+
     class Meta:
         model = Comment
         depth = 2
-        fields = ["id", "content", "author", "created"]
-        read_only_fields = ["created", "author", "id"]
+        fields = ["id", "content", "author", "created", "created_humanized"]
+        read_only_fields = ["created", "author", "id", "created_humanized"]
+
+    def get_created_humanized(self, obj):
+        if obj.created:
+            dt = datetime.combine(obj.created, datetime.min.time())
+            aware_dt = make_aware(dt, timezone=get_current_timezone())
+            return naturaltime(aware_dt)
+        return None
 
     def create(self, validated_data):
         request = self.context["request"]
@@ -150,10 +179,20 @@ class CommentSerializer(serializers.ModelSerializer):
 
 
 class TaskHistorySerializer(serializers.ModelSerializer):
+    created_humanized = serializers.SerializerMethodField()
+
+    def get_created_humanized(self, obj):
+        if obj.created:
+            dt = datetime.combine(obj.created, datetime.min.time())
+            aware_dt = make_aware(dt, timezone=get_current_timezone())
+            return naturaltime(aware_dt)
+        return None
+
     class Meta:
         model = TaskHistory
         depth = 2
-        fields = ["id", "user", "action", "created"]
+        fields = ["id", "user", "action", "created", "created_humanized"]
+        read_only_fields = ["id", "created_humanized"]
 
 
 class NotificationSerializer(serializers.ModelSerializer):
