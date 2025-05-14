@@ -48,6 +48,36 @@ export const taskServices = {
             throw messages;
         }
     },
+    async assignTask(id, payload) {        
+        try {
+            const response = await axiosUtility.getResponse({
+                apiName: `/tasks/${id}/assign/`,
+                methodType: 'post',
+                payload: payload,
+                queryParams: {},
+                headers: {}
+            });
+            return response;
+        } catch (error) {
+            const { messages } = errorHandlerUtility.handleError(error);
+            throw messages;
+        }
+    },
+    async collaborateTask(id, payload) {
+        try {
+            const response = await axiosUtility.getResponse({
+                apiName: `/tasks/${id}/collaborators/`,
+                methodType: 'post',
+                payload: payload,
+                queryParams: {},
+                headers: {}
+            });
+            return response;
+        } catch (error) {
+            const { messages } = errorHandlerUtility.handleError(error);
+            throw messages;
+        }
+    },
     async deleteTask(id) {
         try {
             const response = await axiosUtility.getResponse({

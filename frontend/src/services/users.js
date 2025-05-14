@@ -33,6 +33,21 @@ export const userServices = {
             throw messages;
         }
     },
+    async getAllUserList() {
+        try {
+            const response = await axiosUtility.getResponse({
+                apiName: `/all/users/`,
+                methodType: 'get',
+                payload: {},
+                queryParams: {},
+                headers: {}
+            });
+            return response;
+        } catch (error) {
+            const { messages } = errorHandlerUtility.handleError(error);
+            throw messages;
+        }
+    },
     async deleteUser(id) {
         try {
             const response = await axiosUtility.getResponse({

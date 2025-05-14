@@ -6,6 +6,7 @@ import '@vuepic/vue-datepicker/dist/main.css';
 import DateRangePicker from '@/shared/DateRangePicker.vue';
 import AddEditTaskDialog from './components/add-edit-task.vue'
 import DeleteDialog from './components/delete-task.vue';
+import AssignTaskDialog from './components/assign-collab-task.vue';
 import { taskPriorityChoices, taskLifecycleStatusChoices } from '@/utilities/choice-filter-utility'
 import { useRouter } from 'vue-router';
 
@@ -21,6 +22,7 @@ const filterStatusQuery = ref([])
 const showInviteDialog = ref(false)
 const editingTask = ref(null)
 const isCardView = ref(false)
+const assignOrCollabType = ref('assign')
 const selectedDateRange = ref({
   start_date: null,
   end_date: null,
@@ -30,6 +32,17 @@ const formatDate = (date) => new Date(date).toLocaleDateString()
 function editTask(task) {
   editingTask.value = { ...task }
   showInviteDialog.value = true
+}
+
+const showAssignDialog = ref(false)
+const selectedTask = ref(null)
+
+function openAssignDialog(task, type = 'assign') {
+  console.log(task);
+  
+  selectedTask.value = { ...task }
+  assignOrCollabType.value = type
+  showAssignDialog.value = true
 }
 
 function handleDialogClose(val) {
@@ -111,8 +124,14 @@ function handleDeleteConfirm() {
   fetchTasks()
 }
 
-function goToTaskDetails(task) {  
-  router.push({ name: 'TaskDetail', params: { id: task.id } })
+function goToTaskDetails(event, row) {
+  const task = row?.item ?? event;
+  const taskId = task?.id;
+  if (taskId) {
+    router.push({ name: 'TaskDetail', params: { id: taskId } });
+  } else {
+    toastUtility.showError("Unable to extract task ID:", row);
+  }
 }
 
 function handleItemsPerPageChange(newSize) {
@@ -220,6 +239,13 @@ onMounted(fetchTasks)
                               <v-list-item-title>Edit</v-list-item-title>
                             </v-list-item>
 
+                            <v-list-item @click="openAssignDialog(task, 'assign')" class="px-4">
+                              <v-list-item-title>Assign</v-list-item-title>
+                            </v-list-item>
+
+                            <v-list-item @click="openAssignDialog(task, 'collab')" class="px-4">
+                              <v-list-item-title>Collaborate</v-list-item-title>
+                            </v-list-item>
 
                             <v-list-item @click="deleteUser(task)" class="px-4">
                               <v-list-item-title class="text-red">Delete</v-list-item-title>
@@ -234,7 +260,7 @@ onMounted(fetchTasks)
                     <div class="d-flex flex-wrap justify-start text-caption">
                       <v-row>
                         <v-col cols="6">
-                          <p><strong>Deadline:</strong> {{ formatDate(task.deadline) }}</p>
+                          <p><strong>Deadline:</strong> {{ task.deadline_humanized }}</p>
                         </v-col>
                         <v-col cols="6" v-if="task.assigned_to">
                           <p>
@@ -264,9 +290,9 @@ onMounted(fetchTasks)
             <div v-else>
               <!-- Table View -->
               <v-card class="mb-3">
-                <v-data-table @click:row="goToTaskDetails" :page="currentPage" :items-per-page="itemsPerPage" :headers="tableHeaders" :items="tasks"
-                  :loading="loading" class="task-table" @update:modelValue=fetchTasks
-                  @update:items-per-page="handleItemsPerPageChange" hide-default-footer>
+                <v-data-table @click:row="goToTaskDetails" :page="currentPage" :items-per-page="itemsPerPage"
+                  :headers="tableHeaders" :items="tasks" :loading="loading" class="task-table"
+                  @update:modelValue=fetchTasks @update:items-per-page="handleItemsPerPageChange" hide-default-footer>
 
                   <template #item.sn="{ index }">
                     {{ (currentPage - 1) * itemsPerPage + index + 1 }}
@@ -294,7 +320,7 @@ onMounted(fetchTasks)
                   </template>
 
                   <template #item.deadline="{ item }">
-                    {{ formatDate(item.deadline) }}
+                    {{ item.deadline_humanized }}
                   </template>
 
                   <template #item.assigned_to="{ item }">
@@ -324,6 +350,13 @@ onMounted(fetchTasks)
                           <v-list-item-title>Edit</v-list-item-title>
                         </v-list-item>
 
+                        <v-list-item @click="openAssignDialog(item, 'assign')" class="px-4">
+                          <v-list-item-title>Assign</v-list-item-title>
+                        </v-list-item>
+
+                        <v-list-item @click="openAssignDialog(item, 'collab')" class="px-4">
+                          <v-list-item-title>Collaborate</v-list-item-title>
+                        </v-list-item>
 
                         <v-list-item @click="deleteUser(item)" class="px-4">
                           <v-list-item-title class="text-red">Delete</v-list-item-title>
@@ -362,6 +395,8 @@ onMounted(fetchTasks)
       <AddEditTaskDialog v-model="showInviteDialog" :editTask="editingTask" @submit="submitHandler"
         @update:modelValue="handleDialogClose" />
       <DeleteDialog v-model="showDeleteDialog" :taskId="taskToDelete?.id" @submit="handleDeleteConfirm" />
+      <AssignTaskDialog v-model="showAssignDialog" :taskObject="selectedTask" :mode="assignOrCollabType"
+        @submit="fetchTasks" />
     </v-main>
   </v-app>
 </template>
