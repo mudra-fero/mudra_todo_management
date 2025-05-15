@@ -1,21 +1,31 @@
 <script setup>
 const props = defineProps({
-  drawer: Boolean,
+  rail: Boolean
 })
-const emit = defineEmits(['update:drawer'])
+const emit = defineEmits(['update:rail'])
 </script>
 
 <template>
-    <v-navigation-drawer
-      app
-      :model-value="drawer"
-      @update:model-value="$emit('update:drawer', $event)"
-      color="#3E4E3C"
-    >
-      <v-list dense>
-        <v-list-item prepend-icon="mdi-view-dashboard" title="Tasks" :to="{ name: 'tasks' }" link></v-list-item>
-        <v-list-item prepend-icon="mdi-account" title="Users" :to="{ name: 'users' }" link></v-list-item>
-      </v-list>
-    </v-navigation-drawer>
-  </template>
-  
+  <v-navigation-drawer
+    app
+    permanent
+    :rail="rail"
+    expand-on-hover
+    color="#3E4E3C"
+  >
+    <v-list dense nav>
+      <v-list-item
+        prepend-icon="mdi-view-dashboard"
+        title="Tasks"
+        :to="{ name: 'tasks' }"
+        link
+      />
+      <v-list-item
+        prepend-icon="mdi-account"
+        title="Users"
+        :to="{ name: 'users' }"
+        link
+      />
+    </v-list>
+  </v-navigation-drawer>
+</template>

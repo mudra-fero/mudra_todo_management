@@ -1,7 +1,7 @@
 <script setup>
 import { ref, reactive, watch } from 'vue'
 import { useVuelidate } from '@vuelidate/core'
-import { required } from '@vuelidate/validators'
+import { required, helpers } from '@vuelidate/validators'
 import { toastUtility } from '@/utilities/toast-utility'
 import { taskLifecycleStatusChoices, taskPriorityChoices } from '@/utilities/choice-filter-utility'
 import { computed } from 'vue'
@@ -26,11 +26,11 @@ const taskForm = reactive({
 const showError = ref(false)
 
 const rules = computed(() => ({
-  title: { required },
-  description: { required },
-  priority: { required },
-  deadline: { required },
-  lifecycle: { required }
+  title: { required: helpers.withMessage('Title is required', required) },
+  description: { required: helpers.withMessage('description is required', required) },
+  priority: { required: helpers.withMessage('priority is required', required) },
+  deadline: { required: helpers.withMessage('deadline is required', required) },
+  lifecycle: { required: helpers.withMessage('lifecycle is required', required) }
 }))
 
 watch(() => props.modelValue, (val) => {
@@ -66,6 +66,11 @@ watch(() => props.editTask, (val) => {
 })
 
 const handleInviteSubmit = async () => {
+    const isValid = await v$.value.$validate()
+  if (!isValid) {
+    showError.value = true
+    return
+  }
   try {
     const payload = {
       title: taskForm.title,

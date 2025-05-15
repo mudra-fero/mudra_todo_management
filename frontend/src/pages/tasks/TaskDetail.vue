@@ -166,7 +166,7 @@ onMounted(fetchTasks)
           {{task.collaborated_with.map(c => c.user.username).join(', ') || "--"}}
         </p>
 
-        <v-tabs v-model="tab" bg-color="#F5F3EF" class="mt-4">
+        <v-tabs v-model="tab" class="mt-4">
           <v-tab value="comments">comments</v-tab>
           <v-tab value="history">history</v-tab>
         </v-tabs>
@@ -175,7 +175,7 @@ onMounted(fetchTasks)
           <v-tabs-window v-model="tab">
             <v-tabs-window-item value="comments">
               <div ref="commentsContainer" style="max-height: 40vh; overflow-y: auto;" class="border mt-3">
-                <v-row class="mt-4 mb-1 mx-2">
+                <v-row v-if="comments.length" class="mt-4 mb-1 mx-2">
                   <v-col cols="12" v-for="(comment, index) in comments" :key="index" :class="[
                     'd-flex',
                     'justify-start'
@@ -197,6 +197,12 @@ onMounted(fetchTasks)
                     </div>
                   </v-col>
                 </v-row>
+                <v-col cols="12" v-else class="text-center mt-5 mb-5">
+                  <v-icon aria-hidden="false">
+                    mdi-message-text
+                  </v-icon>
+                  No comments found.
+                </v-col>
               </div>
               <v-row class="mt-2">
                 <v-col cols="11">

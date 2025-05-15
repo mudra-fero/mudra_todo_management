@@ -1,7 +1,7 @@
 <script setup>
 import { ref, reactive, watch } from 'vue'
 import { useVuelidate } from '@vuelidate/core'
-import { required, email as emailValidator, sameAs } from '@vuelidate/validators'
+import { required, helpers, email as emailValidator, sameAs } from '@vuelidate/validators'
 import { toastUtility } from '@/utilities/toast-utility'
 import { computed } from 'vue'
 import { userRoleChoices } from '@/utilities/choice-filter-utility'
@@ -38,14 +38,14 @@ const registerForm = reactive({
 const showError = ref(false)
 
 const rules = computed(() => ({
-  username: showUserFields.value ? { required } : {},
-  password: showPasswordFields.value ? { required } : {},
+  username: showUserFields.value ? { required: helpers.withMessage('Username is required', required) } : {},
+  password: showPasswordFields.value ? { required: helpers.withMessage('Password is required', required) } : {},
   confirmPassword: showPasswordFields.value ? {
-    required,
+    required: helpers.withMessage('Confirm password is required', required),
     sameAs: sameAs(registerForm.password)
   } : {},
-  email: showUserFields.value ? { required, email: emailValidator } : {},
-  role: showUserFields.value ? { required } : {},
+  email: showUserFields.value ? { required: helpers.withMessage('Email is required', required), email: emailValidator } : {},
+  role: showUserFields.value ? { required: helpers.withMessage('Role is required', required) } : {},
 }))
 
 watch(() => props.modelValue, (val) => {
@@ -77,6 +77,12 @@ function resetForm() {
 const v$ = useVuelidate(rules, registerForm)
 
 const handleInviteSubmit = async () => {
+    const isValid = await v$.value.$validate()
+  if (!isValid) {
+    showError.value = true
+    return
+  }
+
   try {
     const { editUser, changePasswordMode } = props
     const id = editUser?.id

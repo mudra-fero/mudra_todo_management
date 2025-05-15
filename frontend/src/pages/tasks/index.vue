@@ -1,5 +1,5 @@
 <script setup>
-import { ref, watch, onMounted } from 'vue'
+import { ref, onMounted } from 'vue'
 import { taskServices } from '@/services/tasks'
 import { toastUtility } from '@/utilities/toast-utility'
 import '@vuepic/vue-datepicker/dist/main.css';
@@ -15,7 +15,7 @@ const tasks = ref([])
 const loading = ref(false)
 const totalItems = ref(0)
 const currentPage = ref(1)
-const itemsPerPage = ref(5)
+const itemsPerPage = ref(10)
 const searchQuery = ref('')
 const filterpriorityQuery = ref([])
 const filterStatusQuery = ref([])
@@ -27,7 +27,6 @@ const selectedDateRange = ref({
   start_date: null,
   end_date: null,
 })
-const formatDate = (date) => new Date(date).toLocaleDateString()
 
 function editTask(task) {
   editingTask.value = { ...task }
@@ -38,8 +37,6 @@ const showAssignDialog = ref(false)
 const selectedTask = ref(null)
 
 function openAssignDialog(task, type = 'assign') {
-  console.log(task);
-  
   selectedTask.value = { ...task }
   assignOrCollabType.value = type
   showAssignDialog.value = true
@@ -186,11 +183,11 @@ onMounted(fetchTasks)
               </v-col>
               <v-col cols="8">
                 <v-text-field v-model="searchQuery" @update:modelValue="() => { currentPage = 1; fetchTasks(); }"
-                  variant="outlined" placeholder="Search user ...." />
+                  variant="outlined" placeholder="Search task ...." />
               </v-col>
               <v-col cols="2" class="mt-3">
                 <v-btn color="#3E4E3C" density="comfortable" @click="showInviteDialog = true">
-                  Add User
+                  Add Task
                 </v-btn>
               </v-col>
             </v-row>
@@ -376,7 +373,8 @@ onMounted(fetchTasks)
               </v-col>
               <v-col cols="auto">
                 <v-select v-model="itemsPerPage" :items="[5, 10, 20, 50]" dense hide-details variant="outlined"
-                  style="max-width: 100px;" />
+                  style="max-width: 100px;" @update:modelValue="() => { currentPage = 1; fetchTasks(); }" />
+
               </v-col>
               <v-col cols="auto">
                 <span>{{ (currentPage - 1) * itemsPerPage + 1 }} -
