@@ -155,8 +155,14 @@ class TaskViewSet(BaseViewSet):
 
 class NotificationViewSet(viewsets.ModelViewSet):
     pagination_class = None
-    queryset = Notification.objects.all()
     serializer_class = NotificationSerializer
+
+    def get_queryset(self):
+        print(self.action)
+        user_profile = self.request.user.profile
+        if self.action == "list":
+            return Notification.objects.filter(user=user_profile, is_read=False)
+        return Notification.objects.all()
 
     @action(detail=False, methods=["post"], url_path="mark-as-read")
     def mark_as_read(self, request):
