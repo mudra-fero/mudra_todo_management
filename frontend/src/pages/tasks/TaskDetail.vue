@@ -18,10 +18,10 @@ const showInviteDialog = ref(false)
 const assignOrCollabType = ref('assign')
 const editingTask = ref(null)
 const newComment = ref('')
-const formatDate = (date) => new Date(date).toLocaleDateString()
 const commentsContainer = ref(null)
 const showAssignDialog = ref(false)
 const selectedTask = ref(null)
+const currentUserRole = ref('')
 
 watch(comments, async () => {
   await nextTick()
@@ -91,7 +91,15 @@ const deleteComment = async (commentId) => {
   }
 };
 
-onMounted(fetchTasks)
+onMounted(() => {
+  fetchTasks()
+  const storedRoleKey = localStorage.getItem('user_role').split('"')[1];
+  currentUserRole.value = storedRoleKey || ''
+})
+
+const isAllowed = (allowedRoles) => {
+  return allowedRoles.includes(currentUserRole.value)
+}
 </script>
 
 <template>
@@ -109,19 +117,20 @@ onMounted(fetchTasks)
               </template>
 
               <v-list density="compact">
-                <v-list-item @click="editTask(task)" class="px-4">
+                <v-list-item v-if="isAllowed(['Admin', 'Manager', 'Team Member'])" @click="editTask(item)" class="px-4">
                   <v-list-item-title>Edit</v-list-item-title>
                 </v-list-item>
 
-                <v-list-item @click="openAssignDialog(task, 'assign')" class="px-4">
+                <v-list-item v-if="isAllowed(['Admin', 'Manager'])" @click="openAssignDialog(item, 'assign')"
+                  class="px-4">
                   <v-list-item-title>Assign</v-list-item-title>
                 </v-list-item>
 
-                <v-list-item @click="openAssignDialog(task, 'collab')" class="px-4">
+                <v-list-item v-if="isAllowed(['Manager'])" @click="openAssignDialog(item, 'collab')" class="px-4">
                   <v-list-item-title>Collaborate</v-list-item-title>
                 </v-list-item>
 
-                <v-list-item @click="deleteUser(task)" class="px-4">
+                <v-list-item v-if="isAllowed(['Admin', 'Manager'])" @click="deleteUser(item)" class="px-4">
                   <v-list-item-title class="text-red">Delete</v-list-item-title>
                 </v-list-item>
               </v-list>
@@ -168,7 +177,7 @@ onMounted(fetchTasks)
 
         <v-tabs v-model="tab" class="mt-4">
           <v-tab value="comments">comments</v-tab>
-          <v-tab value="history">history</v-tab>
+          <v-tab v-if="isAllowed(['Admin', 'Manager'])" value="history">history</v-tab>
         </v-tabs>
 
         <v-card-text>
@@ -218,7 +227,7 @@ onMounted(fetchTasks)
 
             </v-tabs-window-item>
 
-            <v-tabs-window-item value="history">
+            <v-tabs-window-item v-if="isAllowed(['Admin', 'Manager'])" value="history">
               <div style="max-height: 50vh; overflow-y: auto;">
                 <v-timeline side="end" class="border">
                   <v-timeline-item v-for="(log, index) in logs" :key="index" :dot-color="'#3E4E3C'" size="small">

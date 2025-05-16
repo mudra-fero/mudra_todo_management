@@ -72,11 +72,20 @@ function toggleSelectAll() {
 }
 
 onMounted(async () => {
-    try {
-        const res = await userServices.getAllUserList()
-        users.value = res.data
-    } catch (e) {
-        toastUtility.showError('Failed to load users.')
+    const currentUserRole = ref('')
+    const storedRoleKey = localStorage.getItem('user_role').split('"')[1];
+    currentUserRole.value = storedRoleKey || ''
+    const isAllowed = (allowedRoles) => {
+        return allowedRoles.includes(currentUserRole.value)
+    }
+
+    if (isAllowed(['Admin', 'Manager'])) {
+        try {
+            const res = await userServices.getAllUserList()
+            users.value = res.data
+        } catch (e) {
+            toastUtility.showError('Failed to load users.')
+        }
     }
 })
 

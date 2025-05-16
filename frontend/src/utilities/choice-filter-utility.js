@@ -9,7 +9,7 @@ export const userRoleChoices = [
     },
     {
         key: "TEAM_MEMBER",
-        value: "Team Manager"
+        value: "Team Member"
     }
 ]
 

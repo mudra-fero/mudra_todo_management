@@ -1,5 +1,5 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { watch } from 'vue'
 import InviteUserDialog from './components/invite-user.vue'
 import DeleteDialog from './components/delete-user.vue'
@@ -18,6 +18,16 @@ const showDeleteDialog = ref(false)
 const userToDelete = ref(null)
 const editingUser = ref(null)
 const changePasswordMode = ref(false)
+const currentUserRole = ref('')
+
+onMounted(() => {
+  const storedRoleKey = localStorage.getItem('user_role').split('"')[1];
+  currentUserRole.value = storedRoleKey || ''
+})
+
+const isAllowed = (allowedRoles) => {
+  return allowedRoles.includes(currentUserRole.value)
+}
 
 function changeUserPassword(user) {
   editingUser.value = { ...user }
@@ -134,7 +144,7 @@ async function submitHandler() {
                 :items="userRoleChoices" item-title="value" item-value="key" multiple></v-select>
             </v-col>
             <v-col cols="2" class="mt-3">
-              <v-btn color="#3E4E3C" density="comfortable" @click="showInviteDialog = true">
+              <v-btn color="#3E4E3C" density="comfortable" v-if="isAllowed(['Admin'])" @click="showInviteDialog = true">
                 Add User
               </v-btn>
             </v-col>
@@ -158,17 +168,18 @@ async function submitHandler() {
                 </template>
 
                 <v-list density="compact">
-                  <v-list-item @click="editUser(item)" class="px-4">
+                  <v-list-item v-if="isAllowed(['Admin'])" @click="editUser(item)">
                     <v-list-item-title>Edit</v-list-item-title>
                   </v-list-item>
 
-                  <v-list-item @click="deleteUser(item)" class="px-4">
+                  <v-list-item v-if="isAllowed(['Admin'])" @click="deleteUser(item)">
                     <v-list-item-title class="text-red">Delete</v-list-item-title>
                   </v-list-item>
 
-                  <v-list-item @click="changeUserPassword(item)" class="px-4">
+                  <v-list-item v-if="isAllowed(['Admin'])" @click="changeUserPassword(item)">
                     <v-list-item-title>Change password</v-list-item-title>
                   </v-list-item>
+
                 </v-list>
               </v-menu>
             </template>

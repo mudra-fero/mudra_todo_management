@@ -2,7 +2,6 @@
 import { ref, onMounted, computed } from 'vue'
 import { authenticationService } from '@/services/authentication';
 import { toastUtility } from '@/utilities/toast-utility';
-import { userServices } from '@/services/users';
 import { notificationService } from '@/services/notification';
 
 defineEmits(['toggle-rail'])
@@ -13,9 +12,8 @@ const notifications = ref([])
 
 const fetchUser = async () => {
   try {
-    const response = await userServices.getCurrentUser();
-    username.value = response.data[0].username;
-    role.value = response.data[0].role;
+    username.value = localStorage.getItem('username').split('"')[1];
+    role.value = localStorage.getItem('user_role').split('"')[1];
   } catch (error) {
     toastUtility.showError(error);
   }
@@ -32,7 +30,7 @@ const fetchNotifications = async () => {
 
 const clearNotifications = async () => {
   try {
-    await notificationService.clearAllNotifications() 
+    await notificationService.clearAllNotifications()
     toastUtility.showSuccess('Notifications cleared')
     await fetchNotifications()
   } catch (error) {
@@ -72,14 +70,14 @@ onMounted(() => {
 
         <v-list style="max-height: 300px; overflow-y: auto;">
           <v-list-item v-for="(notification, index) in notifications" :key="index" class="py-3">
-                <v-list-item-subtitle>
-                  {{ notification.message }}
-                </v-list-item-subtitle>
-                <v-divider class="mt-5"></v-divider>
+            <v-list-item-subtitle>
+              {{ notification.message }}
+            </v-list-item-subtitle>
+            <v-divider class="mt-5"></v-divider>
           </v-list-item>
           <v-list-item v-if="!notifications.length" class="text-center">
-          No notifications
-        </v-list-item>
+            No notifications
+          </v-list-item>
         </v-list>
       </v-card>
     </v-menu>

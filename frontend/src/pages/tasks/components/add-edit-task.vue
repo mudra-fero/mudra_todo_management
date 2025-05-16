@@ -25,13 +25,13 @@ const taskForm = reactive({
 
 const showError = ref(false)
 
-const rules = computed(() => ({
+const rules = {
   title: { required: helpers.withMessage('Title is required', required) },
   description: { required: helpers.withMessage('description is required', required) },
   priority: { required: helpers.withMessage('priority is required', required) },
   deadline: { required: helpers.withMessage('deadline is required', required) },
   lifecycle: { required: helpers.withMessage('lifecycle is required', required) }
-}))
+}
 
 watch(() => props.modelValue, (val) => {
   isOpen.value = val

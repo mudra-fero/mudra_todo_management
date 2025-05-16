@@ -1,8 +1,18 @@
 <script setup>
+import { ref, onMounted } from 'vue'
 const props = defineProps({
   rail: Boolean
 })
 const emit = defineEmits(['update:rail'])
+const currentUserRole = ref('')
+onMounted(() => {
+  const storedRoleKey = localStorage.getItem('user_role').split('"')[1];
+  currentUserRole.value = storedRoleKey || ''
+})
+
+const isAllowed = (allowedRoles) => {
+  return allowedRoles.includes(currentUserRole.value)
+}
 </script>
 
 <template>

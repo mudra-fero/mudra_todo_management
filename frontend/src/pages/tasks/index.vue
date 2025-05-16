@@ -27,6 +27,7 @@ const selectedDateRange = ref({
   start_date: null,
   end_date: null,
 })
+const currentUserRole = ref('')
 
 function editTask(task) {
   editingTask.value = { ...task }
@@ -136,7 +137,16 @@ function handleItemsPerPageChange(newSize) {
   itemsPerPage.value = newSize;
   fetchTasks();
 }
-onMounted(fetchTasks)
+
+onMounted(() => {
+  fetchTasks()
+  const storedRoleKey = localStorage.getItem('user_role').split('"')[1];
+  currentUserRole.value = storedRoleKey || ''
+})
+
+const isAllowed = (allowedRoles) => {
+  return allowedRoles.includes(currentUserRole.value)
+}
 </script>
 
 <template>
@@ -186,7 +196,8 @@ onMounted(fetchTasks)
                   variant="outlined" placeholder="Search task ...." />
               </v-col>
               <v-col cols="2" class="mt-3">
-                <v-btn color="#3E4E3C" density="comfortable" @click="showInviteDialog = true">
+                <v-btn color="#3E4E3C" density="comfortable" v-if="isAllowed(['Admin', 'Manager'])"
+                  @click="showInviteDialog = true">
                   Add Task
                 </v-btn>
               </v-col>
@@ -232,19 +243,22 @@ onMounted(fetchTasks)
                           </template>
 
                           <v-list density="compact">
-                            <v-list-item @click="editTask(task)" class="px-4">
+                            <v-list-item v-if="isAllowed(['Admin', 'Manager', 'Team Member'])" @click="editTask(task)"
+                              class="px-4">
                               <v-list-item-title>Edit</v-list-item-title>
                             </v-list-item>
 
-                            <v-list-item @click="openAssignDialog(task, 'assign')" class="px-4">
+                            <v-list-item v-if="isAllowed(['Admin', 'Manager'])"
+                              @click="openAssignDialog(task, 'assign')" class="px-4">
                               <v-list-item-title>Assign</v-list-item-title>
                             </v-list-item>
 
-                            <v-list-item @click="openAssignDialog(task, 'collab')" class="px-4">
+                            <v-list-item v-if="isAllowed(['Manager'])" @click="openAssignDialog(task, 'collab')"
+                              class="px-4">
                               <v-list-item-title>Collaborate</v-list-item-title>
                             </v-list-item>
 
-                            <v-list-item @click="deleteUser(task)" class="px-4">
+                            <v-list-item v-if="isAllowed(['Admin', 'Manager'])" @click="deleteUser(task)" class="px-4">
                               <v-list-item-title class="text-red">Delete</v-list-item-title>
                             </v-list-item>
                           </v-list>
@@ -343,19 +357,22 @@ onMounted(fetchTasks)
                       </template>
 
                       <v-list density="compact">
-                        <v-list-item @click="editTask(item)" class="px-4">
+                        <v-list-item v-if="isAllowed(['Admin', 'Manager', 'Team Member'])" @click="editTask(item)"
+                          class="px-4">
                           <v-list-item-title>Edit</v-list-item-title>
                         </v-list-item>
 
-                        <v-list-item @click="openAssignDialog(item, 'assign')" class="px-4">
+                        <v-list-item v-if="isAllowed(['Admin', 'Manager'])" @click="openAssignDialog(item, 'assign')"
+                          class="px-4">
                           <v-list-item-title>Assign</v-list-item-title>
                         </v-list-item>
 
-                        <v-list-item @click="openAssignDialog(item, 'collab')" class="px-4">
+                        <v-list-item v-if="isAllowed(['Manager'])" @click="openAssignDialog(item, 'collab')"
+                          class="px-4">
                           <v-list-item-title>Collaborate</v-list-item-title>
                         </v-list-item>
 
-                        <v-list-item @click="deleteUser(item)" class="px-4">
+                        <v-list-item v-if="isAllowed(['Admin', 'Manager'])" @click="deleteUser(item)" class="px-4">
                           <v-list-item-title class="text-red">Delete</v-list-item-title>
                         </v-list-item>
                       </v-list>
