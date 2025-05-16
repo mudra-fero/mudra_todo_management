@@ -42,7 +42,7 @@ class TaskViewSet(BaseViewSet):
 
         if not IsManagerOrAdmin().has_permission(request, self):
             queryset = queryset.filter(
-                Q(assigned_to=user_profile) | Q(collaborators=user_profile)
+                Q(assigned_to=user_profile) | Q(task_collaborations__user=user_profile)
             ).distinct()
 
         priorities = request.query_params.getlist("priority[]")
