@@ -1,12 +1,7 @@
 from django.contrib import admin, messages
 
 from lib.misc import join_usernames
-from .models import Task, TaskAssignment, TaskCollaborator
-
-
-class TaskAssignmentInline(admin.TabularInline):
-    model = TaskAssignment
-    extra = 1
+from .models import Task, TaskCollaborator
 
 
 class TaskCollaborationInline(admin.TabularInline):
@@ -28,7 +23,7 @@ class TaskAdmin(admin.ModelAdmin):
     list_filter = ("priority", "lifecycle_stage", "deadline")
     search_fields = ("title", "description", "created_by__username")
     ordering = ("-deadline",)
-    inlines = [TaskAssignmentInline, TaskCollaborationInline]
+    inlines = [TaskCollaborationInline]
     actions = ["mark_as_completed", "change_priority_to_critical"]
 
     fieldsets = (
