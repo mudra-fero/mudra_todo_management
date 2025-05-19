@@ -1,6 +1,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { taskServices } from '@/services/tasks'
+import { userServices } from '@/services/users'
 import { toastUtility } from '@/utilities/toast-utility'
 import '@vuepic/vue-datepicker/dist/main.css';
 import DateRangePicker from '@/shared/DateRangePicker.vue';
@@ -8,6 +9,7 @@ import AddEditTaskDialog from './components/add-edit-task.vue'
 import DeleteDialog from './components/delete-task.vue';
 import AssignTaskDialog from './components/assign-collab-task.vue';
 import { taskPriorityChoices, taskLifecycleStatusChoices } from '@/utilities/choice-filter-utility'
+import { userRoleChoices } from '@/utilities/choice-filter-utility'
 import { useRouter } from 'vue-router';
 
 const router = useRouter();
@@ -138,10 +140,10 @@ function handleItemsPerPageChange(newSize) {
   fetchTasks();
 }
 
-onMounted(() => {
+onMounted(async () => {
   fetchTasks()
-  const storedRoleKey = localStorage.getItem('user_role').split('"')[1];
-  currentUserRole.value = storedRoleKey || ''
+  const response = await userServices.getCurrentUser()
+  currentUserRole.value = userRoleChoices.find(c => c.key === response.data[0].role)?.value
 })
 
 const isAllowed = (allowedRoles) => {

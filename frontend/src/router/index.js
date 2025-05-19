@@ -58,13 +58,6 @@ const router = createRouter({
 })
 
 router.beforeEach(async (to, from, next) => {
-  console.log(to)
-  console.log(from)
-  console.log(next)
-  const response = await userServices.getCurrentUser()
-  const user_role = userRoleChoices.find(c => c.key === response.data[0].role)?.value
-  localStorageUtility.setItemToLocalStorage("user_role", user_role);
-  localStorageUtility.setItemToLocalStorage("username", response.data[0].username);
   const token = localStorage.getItem('access_token')
   if (to.meta.requiresAuth && !token) {
     return next('/')
@@ -72,8 +65,12 @@ router.beforeEach(async (to, from, next) => {
   if ((to.path === '/' || to.path === '/register') && token) {
     return next('/tasks')
   }
-  if (to.meta.role && !to.meta.role.includes(user_role)) {
-    return next('/unauthorized')
+  if (token) {
+    const response = await userServices.getCurrentUser()
+    const user_role = userRoleChoices.find(c => c.key === response.data[0].role)?.value
+    if (to.meta.role && !to.meta.role.includes(user_role)) {
+      return next('/unauthorized')
+    }
   }
   next()
 })

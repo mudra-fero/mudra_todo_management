@@ -3,6 +3,7 @@ import { ref, reactive, onMounted, watch, computed } from 'vue'
 import { userServices } from '@/services/users'
 import { taskServices } from '@/services/tasks'
 import { toastUtility } from '@/utilities/toast-utility'
+import { userRoleChoices } from '@/utilities/choice-filter-utility'
 
 const props = defineProps({
     modelValue: Boolean,
@@ -73,8 +74,8 @@ function toggleSelectAll() {
 
 onMounted(async () => {
     const currentUserRole = ref('')
-    const storedRoleKey = localStorage.getItem('user_role').split('"')[1];
-    currentUserRole.value = storedRoleKey || ''
+  const response = await userServices.getCurrentUser()
+  currentUserRole.value = userRoleChoices.find(c => c.key === response.data[0].role)?.value
     const isAllowed = (allowedRoles) => {
         return allowedRoles.includes(currentUserRole.value)
     }

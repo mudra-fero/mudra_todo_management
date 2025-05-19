@@ -20,9 +20,9 @@ const editingUser = ref(null)
 const changePasswordMode = ref(false)
 const currentUserRole = ref('')
 
-onMounted(() => {
-  const storedRoleKey = localStorage.getItem('user_role').split('"')[1];
-  currentUserRole.value = storedRoleKey || ''
+onMounted(async () => {
+  const response = await userServices.getCurrentUser()
+  currentUserRole.value = userRoleChoices.find(c => c.key === response.data[0].role)?.value
 })
 
 const isAllowed = (allowedRoles) => {

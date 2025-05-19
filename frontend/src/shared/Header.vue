@@ -1,7 +1,9 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue'
 import { authenticationService } from '@/services/authentication';
-import { toastUtility } from '@/utilities/toast-utility';
+import { userServices } from '@/services/users'
+import { toastUtility } from '@/utilities/toast-utility'
+import { userRoleChoices } from '@/utilities/choice-filter-utility'
 import { notificationService } from '@/services/notification';
 
 defineEmits(['toggle-rail'])
@@ -12,8 +14,9 @@ const notifications = ref([])
 
 const fetchUser = async () => {
   try {
-    username.value = localStorage.getItem('username').split('"')[1];
-    role.value = localStorage.getItem('user_role').split('"')[1];
+    const response = await userServices.getCurrentUser()
+    username.value = response.data[0].username
+    role.value = userRoleChoices.find(c => c.key === response.data[0].role)?.value
   } catch (error) {
     toastUtility.showError(error);
   }
@@ -89,7 +92,7 @@ onMounted(() => {
 
       <v-card min-width="240">
         <v-list>
-          <v-list-item prepend-avatar="src/assets/user.png" :subtitle="role" :title="username" />
+          <v-list-item prepend-avatar="/src/assets/user.png" :subtitle="role" :title="username" />
         </v-list>
         <v-divider />
         <v-list>

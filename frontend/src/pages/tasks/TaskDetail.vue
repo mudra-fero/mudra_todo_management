@@ -6,7 +6,9 @@ import AssignTaskDialog from './components/assign-collab-task.vue';
 import { useRoute, useRouter } from 'vue-router';
 import { taskServices } from '@/services/tasks'
 import { ref, watch, nextTick, onMounted } from 'vue';
+import { userServices } from '@/services/users'
 import { toastUtility } from '@/utilities/toast-utility'
+import { userRoleChoices } from '@/utilities/choice-filter-utility'
 
 const route = useRoute();
 const taskId = route.params.id;
@@ -22,6 +24,12 @@ const commentsContainer = ref(null)
 const showAssignDialog = ref(false)
 const selectedTask = ref(null)
 const currentUserRole = ref('')
+const mentionQuery = ref('');
+const showMentionList = ref(false);
+const mentionIndex = ref(-1);
+const usersList = ref([]);
+const filteredUsers = ref([]);
+const mentionedUsers = ref([]);
 
 watch(comments, async () => {
   await nextTick()
@@ -74,7 +82,7 @@ const addComment = async () => {
   if (!newComment.value.trim()) return
 
   try {
-    await taskServices.addComments(taskId, { content: newComment.value })
+    await taskServices.addComments(taskId, { content: newComment.value, user_ids: mentionedUsers.value })
     newComment.value = ''
     await fetchTasks()
   } catch (error) {
@@ -91,10 +99,45 @@ const deleteComment = async (commentId) => {
   }
 };
 
-onMounted(() => {
+watch(newComment, (val) => {
+  const newVal = val.trim();
+  const mentionMatch = newVal.match(/@([\w\d_-]*)$/);
+  if (mentionMatch) {
+    const query = mentionMatch[1];
+    mentionQuery.value = query;
+    filteredUsers.value = usersList.value.filter(u =>
+      u.username.toLowerCase().startsWith(query.toLowerCase())
+    );
+    showMentionList.value = filteredUsers.value.length > 0;
+  } else {
+    showMentionList.value = false;
+  }
+});
+
+function selectMention(username) {
+  const atIndex = newComment.value.lastIndexOf('@');
+  newComment.value =
+    newComment.value.substring(0, atIndex) + username + ' ';
+
+  showMentionList.value = false;
+  mentionQuery.value = '';
+
+  const matchedUser = usersList.value.find(u => u.username === username);
+  if (matchedUser && !mentionedUsers.value.some(u => u.id === matchedUser.id)) {
+    mentionedUsers.value.push(matchedUser.id);
+  }
+}
+
+onMounted(async () => {
   fetchTasks()
-  const storedRoleKey = localStorage.getItem('user_role').split('"')[1];
-  currentUserRole.value = storedRoleKey || ''
+  const response = await userServices.getCurrentUser()
+  currentUserRole.value = userRoleChoices.find(c => c.key === response.data[0].role)?.value
+
+  const userRes = await userServices.getUserList();
+  usersList.value = userRes.data.results.map(user => ({
+    id: user.id,
+    username: user.username
+  }));
 })
 
 const isAllowed = (allowedRoles) => {
@@ -215,8 +258,17 @@ const isAllowed = (allowedRoles) => {
               </div>
               <v-row class="mt-2">
                 <v-col cols="11">
-                  <v-text-field density="compact" v-model="newComment" variant="outlined" label="Add a comment"
-                    placeholder="Write your comment here..." rows="3" />
+                  <div style="position: relative;">
+                    <v-text-field density="compact" v-model="newComment" variant="outlined" label="Add a comment"
+                      placeholder="Write your comment here..." rows="3" auto-grow />
+                    <v-list class="listStyle" v-if="showMentionList">
+                      <v-list-item v-for="(user, index) in filteredUsers" :key="user.id"
+                        @click="selectMention(user.username)" :class="{ 'bg-grey-lighten-3': index === mentionIndex }">
+                        <v-list-item-subtitle>@{{ user.username }}</v-list-item-subtitle>
+                      </v-list-item>
+
+                    </v-list>
+                  </div>
                 </v-col>
                 <v-col>
                   <v-icon aria-hidden="false" size="40" @click="addComment">
@@ -267,5 +319,15 @@ const isAllowed = (allowedRoles) => {
 <style scoped>
 .text-forest {
   color: #3E4E3C !important;
+}
+
+.listStyle {
+  width: 100%;
+  max-height: 200px;
+  overflow-y: auto;
+  z-index: 2000;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 </style>
