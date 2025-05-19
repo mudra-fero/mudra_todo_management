@@ -145,12 +145,16 @@ class TaskSerializer(serializers.ModelSerializer):
 
 class CommentSerializer(serializers.ModelSerializer):
     created_humanized = serializers.SerializerMethodField()
+    user_ids = serializers.ListSerializer(
+        child=serializers.IntegerField(), write_only=True, required=False
+    )
 
     class Meta:
         model = Comment
         depth = 2
-        fields = ["id", "content", "author", "created", "created_humanized"]
+        fields = ["id", "content", "author", "created", "created_humanized", "user_ids"]
         read_only_fields = ["created", "author", "id", "created_humanized"]
+        write_only_fields = ["user_ids"]
 
     def get_created_humanized(self, obj):
         if obj.created:
@@ -162,20 +166,33 @@ class CommentSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         request = self.context["request"]
         task = self.context["task"]
+        users = UserProfile.objects.filter(id__in=validated_data["user_ids"])
+
         author_profile = request.user.profile
         task.add_history(
             task=task,
             user=self.context["request"].user.profile,
             message=f"Added comment: {validated_data['content']}",
         )
-        task.add_notification(
-            task=task,
-            acting_user=self.context["request"].user.profile,
-            message=f"Added comment: {validated_data['content']}",
+        Notification.objects.bulk_create(
+            [
+                Notification(
+                    user=user,
+                    message=f"You were mentioned in a comment on task '{task.title}'.",
+                )
+                for user in users
+            ]
         )
-        return Comment.objects.create(
-            task=task, author=author_profile, **validated_data
+        comment = Comment.objects.create(
+            task=task, author=author_profile, content=validated_data["content"]
         )
+        comment.mentions.set(users)
+        return comment
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        data.pop("user_ids", None)
+        return data
 
 
 class TaskHistorySerializer(serializers.ModelSerializer):

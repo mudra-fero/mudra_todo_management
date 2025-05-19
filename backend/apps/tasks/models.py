@@ -75,6 +75,9 @@ class Comment(BaseModelWithLogs):
         UserProfile, related_name="task_comments", on_delete=models.CASCADE
     )
     content = models.TextField()
+    mentions = models.ManyToManyField(
+        UserProfile, related_name="mentioned_in_comments", blank=True
+    )
 
     def __str__(self):
         return f"{self.author.user.username} on {self.task.title}"
