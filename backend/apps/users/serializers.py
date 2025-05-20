@@ -5,6 +5,27 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from apps.users.models import User, UserProfile
 
 
+class CustomUserSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ["username", "password", "email", "id"]
+        extra_kwargs = {
+            "password": {"write_only": True},
+        }
+
+    def create(self, validated_data):
+        return User.objects.create_user(**validated_data)
+
+    def update(self, instance, validated_data):
+        password = validated_data.pop("password", None)
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        if password:
+            instance.set_password(password)
+        instance.save()
+        return instance
+
+
 class RegisterSerializer(serializers.ModelSerializer):
     username = serializers.CharField(write_only=True)
     password = serializers.CharField(write_only=True)
@@ -16,11 +37,14 @@ class RegisterSerializer(serializers.ModelSerializer):
         fields = ["username", "password", "email", "role"]
 
     def create(self, validated_data):
-        user = User.objects.create_user(
-            username=validated_data.pop("username"),
-            email=validated_data.pop("email"),
-            password=validated_data.pop("password"),
-        )
+        user = {
+            "username": validated_data.pop("username"),
+            "email": validated_data.pop("email"),
+            "password": validated_data.pop("password"),
+        }
+        user_serializer = CustomUserSerializer(data=user)
+        user_serializer.is_valid(raise_exception=True)
+        user = user_serializer.save()
         return UserProfile.objects.create(user=user, **validated_data)
 
 
@@ -70,9 +94,9 @@ class UserSerializer(serializers.ModelSerializer):
 
     def update(self, instance, validated_data):
         user_data = validated_data.pop("user", {})
-        for attr, value in user_data.items():
-            setattr(instance.user, attr, value)
-        instance.user.save()
+        user_serializer = CustomUserSerializer(instance=instance.user, data=user_data, partial=True)
+        user_serializer.is_valid(raise_exception=True)
+        user_serializer.save()
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
         instance.save()

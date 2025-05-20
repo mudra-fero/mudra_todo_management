@@ -5,7 +5,7 @@ from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
-from apps.tasks.pagination import CustomUserPagination
+from apps.tasks.pagination import CustomUserPagination, CustomNotificationPagination
 from .base import BaseViewSet
 from .models import Task, Comment, Notification
 from .serializers import (
@@ -123,8 +123,6 @@ class TaskViewSet(BaseViewSet):
         task = self.get_object()
 
         try:
-            print(task)
-            print(comment_id)
             comment = Comment.objects.get(id=comment_id, task=task)
         except Comment.DoesNotExist:
             return Response(
@@ -154,14 +152,14 @@ class TaskViewSet(BaseViewSet):
 
 
 class NotificationViewSet(viewsets.ModelViewSet):
-    pagination_class = None
+    pagination_class = CustomNotificationPagination
     serializer_class = NotificationSerializer
 
     def get_queryset(self):
         print(self.action)
         user_profile = self.request.user.profile
         if self.action == "list":
-            return Notification.objects.filter(user=user_profile, is_read=False)
+            return Notification.objects.filter(user=user_profile).order_by("-id")
         return Notification.objects.all()
 
     @action(detail=False, methods=["post"], url_path="mark-as-read")
