@@ -3,13 +3,13 @@ import { errorHandlerUtility } from "@/utilities/error-handler-utility";
 
 // ====================== user-profile services ====================
 export const notificationService = {
-    async getNotifications() {
+    async getNotifications(params) {
         try {
             const response = await axiosUtility.getResponse({
                 apiName: `/notifications/`,
                 methodType: 'get',
                 payload: {},
-                queryParams: {},
+                queryParams: { params },
                 headers: {}
             });
             return response;

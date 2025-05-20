@@ -3,7 +3,7 @@ import { ref } from 'vue'
 import Header from '@/shared/Header.vue'
 import Sidebar from '@/shared/Sidebar.vue'
 
-const rail = ref(false)
+const rail = ref(true)
 </script>
 
 <template>
