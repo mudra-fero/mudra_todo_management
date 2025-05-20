@@ -9,7 +9,7 @@ export const notificationService = {
                 apiName: `/notifications/`,
                 methodType: 'get',
                 payload: {},
-                queryParams: { params },
+                queryParams: params,
                 headers: {}
             });
             return response;

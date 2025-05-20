@@ -100,8 +100,7 @@ const deleteComment = async (commentId) => {
 };
 
 watch(newComment, (val) => {
-  const newVal = val.trim();
-  const mentionMatch = newVal.match(/@([\w\d_-]*)$/);
+  const mentionMatch = val.match(/@([\w\d_-]*)$/);
   if (mentionMatch) {
     const query = mentionMatch[1];
     mentionQuery.value = query;
@@ -115,17 +114,20 @@ watch(newComment, (val) => {
 });
 
 function selectMention(username) {
-  const atIndex = newComment.value.lastIndexOf('@');
-  newComment.value =
-    newComment.value.substring(0, atIndex) + username + ' ';
-
   showMentionList.value = false;
   mentionQuery.value = '';
-
+  const atIndex = newComment.value.lastIndexOf('@');
+  newComment.value =
+    newComment.value.substring(0, atIndex) + '@' + username + ' ';
   const matchedUser = usersList.value.find(u => u.username === username);
   if (matchedUser && !mentionedUsers.value.some(u => u.id === matchedUser.id)) {
     mentionedUsers.value.push(matchedUser.id);
   }
+}
+
+function highlightMentions(content) {
+  if (!content) return '';
+  return content.replace(/@([\w-]+)/g, '<span style="background-color: #e3f2fd; color: #1976d2; padding: 0 4px; border-radius: 4px; font-weight: 500;">@$1</span>');
 }
 
 onMounted(async () => {
@@ -241,7 +243,7 @@ const isAllowed = (allowedRoles) => {
                           </span>
                           <span class="text-caption text-grey-darken-1">{{ comment.created_humanized }}</span>
                         </div>
-                        <div>{{ comment.content }}</div>
+                        <div v-html="highlightMentions(comment.content)"></div>
                         <span class="ml-auto text-red d-flex justify-end" @click="deleteComment(comment.id)">
                           Delete
                         </span>
@@ -266,7 +268,6 @@ const isAllowed = (allowedRoles) => {
                         @click="selectMention(user.username)" :class="{ 'bg-grey-lighten-3': index === mentionIndex }">
                         <v-list-item-subtitle>@{{ user.username }}</v-list-item-subtitle>
                       </v-list-item>
-
                     </v-list>
                   </div>
                 </v-col>
@@ -276,7 +277,6 @@ const isAllowed = (allowedRoles) => {
                   </v-icon>
                 </v-col>
               </v-row>
-
             </v-tabs-window-item>
 
             <v-tabs-window-item v-if="isAllowed(['Admin', 'Manager'])" value="history">
