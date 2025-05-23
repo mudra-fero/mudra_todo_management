@@ -1,108 +1,107 @@
 from django.db import models
-from django.conf import settings
+from lib.base import BaseModel
 from lib.enum import LifecycleStage, PriorityLevel
+from apps.users.models import UserProfile
 
 
-class TaskAssignment(models.Model):
-    task = models.ForeignKey(
-        "Task",
-        related_name="task_assignments",
-        on_delete=models.CASCADE,
-        verbose_name="Task",
-    )
-    user = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        related_name="task_assignments",
-        on_delete=models.CASCADE,
-        verbose_name="Assigned User",
-    )
-    assigned_at = models.DateTimeField(auto_now_add=True)
+class BaseModelWithLogs(BaseModel):
+    class Meta:
+        abstract = True
+        ordering = ("-modified",)
 
-    def __str__(self):
-        return f"{self.task.title} -> {self.user.username}"
+    def add_history(self, task, message, user):
+        TaskHistory.objects.create(
+            task=task,
+            user=user,
+            action=message,
+        )
 
-
-class TaskCollaborator(models.Model):
-    task = models.ForeignKey(
-        "Task",
-        related_name="task_collaborations",
-        on_delete=models.CASCADE,
-        verbose_name="Task",
-    )
-    user = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        related_name="task_collaborations",
-        on_delete=models.CASCADE,
-        verbose_name="Collaborator",
-    )
-    added_at = models.DateTimeField(auto_now_add=True)
-
-    def __str__(self):
-        return f"{self.task.title} - Collaborator: {self.user.username}"
+    def add_notification(self, task, message, acting_user):
+        task = (
+            Task.objects.select_related("assigned_to", "created_by")
+            .prefetch_related("task_collaborations")
+            .get(id=task.id)
+        )
+        user_ids = set()
+        if task.assigned_to:
+            user_ids.add(task.assigned_to.id)
+        if task.created_by:
+            user_ids.add(task.created_by.id)
+        user_ids.update(task.task_collaborations.values_list("user_id", flat=True))
+        user_ids.discard(acting_user.id)
+        notifications = [
+            Notification(user_id=user_id, message=message) for user_id in user_ids
+        ]
+        Notification.objects.bulk_create(notifications)
 
 
-class Task(models.Model):
-    title = models.CharField(max_length=150, verbose_name="Title")
-    description = models.TextField(verbose_name="Description")
+class Task(BaseModelWithLogs):
+    title = models.CharField(max_length=150)
+    description = models.TextField()
     lifecycle_stage = models.IntegerField(
-        choices=LifecycleStage.choices,
-        default=LifecycleStage.TO_DO,
-        verbose_name="Lifecycle Stage",
+        choices=LifecycleStage.choices, default=LifecycleStage.TO_DO
     )
     priority = models.IntegerField(
-        choices=PriorityLevel.choices,
-        default=PriorityLevel.LOW,
-        verbose_name="Priority",
+        choices=PriorityLevel.choices, default=PriorityLevel.LOW
     )
-    deadline = models.DateField(null=True, blank=True, verbose_name="Deadline")
+    deadline = models.DateField(null=True, blank=True)
 
     created_by = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        related_name="created_tasks",
-        on_delete=models.CASCADE,
-        verbose_name="Created By",
+        UserProfile, related_name="created_tasks", on_delete=models.CASCADE
     )
-    assigned_to = models.ManyToManyField(
-        settings.AUTH_USER_MODEL,
-        through="TaskAssignment",
-        related_name="assigned_tasks",
-        verbose_name="Assigned To",
-    )
-    collaborators = models.ManyToManyField(
-        settings.AUTH_USER_MODEL,
-        through="TaskCollaborator",
-        related_name="collaborated_tasks",
-        verbose_name="Collaborators",
+    assigned_to = models.ForeignKey(
+        UserProfile, related_name="assigned_tasks", on_delete=models.CASCADE, null=True
     )
 
     def __str__(self):
         return self.title
 
 
-class Comment(models.Model):
-    task = models.ForeignKey(Task, related_name="comments", on_delete=models.CASCADE)
-    author = models.ForeignKey(
-        settings.AUTH_USER_MODEL, related_name="task_comments", on_delete=models.CASCADE
+class TaskCollaborator(BaseModelWithLogs):
+    task = models.ForeignKey(
+        Task, related_name="task_collaborations", on_delete=models.CASCADE
     )
-    content = models.TextField(verbose_name="Comment Content")
-    created_at = models.DateTimeField(auto_now_add=True)
+    user = models.ForeignKey(
+        UserProfile, related_name="task_collaborations", on_delete=models.CASCADE
+    )
 
     def __str__(self):
-        return f"{self.author.username} on {self.task.title}"
+        return f"{self.task.title} - Collaborator: {self.user.user.username}"
 
 
-class TaskHistory(models.Model):
+class Comment(BaseModelWithLogs):
+    task = models.ForeignKey(Task, related_name="comments", on_delete=models.CASCADE)
+    author = models.ForeignKey(
+        UserProfile, related_name="task_comments", on_delete=models.CASCADE
+    )
+    content = models.TextField()
+    mentions = models.ManyToManyField(
+        UserProfile, related_name="mentioned_in_comments", blank=True
+    )
+
+    def __str__(self):
+        return f"{self.author.user.username} on {self.task.title}"
+
+
+class TaskHistory(BaseModelWithLogs):
     task = models.ForeignKey(
         Task, related_name="task_history", on_delete=models.CASCADE
     )
     user = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        related_name="user_history",
-        on_delete=models.SET_NULL,
-        null=True,
+        UserProfile, related_name="user_history", on_delete=models.SET_NULL, null=True
     )
     action = models.TextField()
-    timestamp = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f"History for {self.task.title} by {self.user}"
+        return f"History for {self.task.title} by {self.user.user.username}"
+
+
+class Notification(BaseModel):
+    user = models.ForeignKey(
+        UserProfile, on_delete=models.CASCADE, related_name="notifications"
+    )
+    message = models.TextField()
+    is_read = models.BooleanField(default=False)
+
+    def __str__(self):
+        return f"{self.user.user.username} - {self.message[:30]}"

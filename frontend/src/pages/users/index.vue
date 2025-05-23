@@ -1,30 +1,63 @@
 <script setup>
-import { ref } from 'vue'
-import axios from 'axios'
-import Header from '@/layout/Header.vue'
-import Sidebar from '@/layout/Sidebar.vue'
+import { ref, onMounted } from 'vue'
 import { watch } from 'vue'
 import InviteUserDialog from './components/invite-user.vue'
 import DeleteDialog from './components/delete-user.vue'
+import { userServices } from '@/services/users'
+import { toastUtility } from '@/utilities/toast-utility'
+import { userRoleChoices } from '@/utilities/choice-filter-utility'
 
 const showInviteDialog = ref(false)
-const drawer = ref(true)
 const itemsPerPage = ref(10)
 const serverItems = ref([])
 const loading = ref(true)
 const totalItems = ref(0)
 const searchQuery = ref('')
+const filterQuery = ref(null)
 const showDeleteDialog = ref(false)
 const userToDelete = ref(null)
-const snackbar = ref(false)
-const snackbarMessage = ref('')
+const editingUser = ref(null)
+const changePasswordMode = ref(false)
+const currentUserRole = ref('')
+
+onMounted(async () => {
+  const response = await userServices.getCurrentUser()
+  currentUserRole.value = userRoleChoices.find(c => c.key === response.data[0].role)?.value
+})
+
+const isAllowed = (allowedRoles) => {
+  return allowedRoles.includes(currentUserRole.value)
+}
+
+function changeUserPassword(user) {
+  editingUser.value = { ...user }
+  changePasswordMode.value = true
+  showInviteDialog.value = true
+}
+
+function editUser(user) {
+  editingUser.value = { ...user }
+  showInviteDialog.value = true
+}
 
 function deleteUser(user) {
   userToDelete.value = user
   showDeleteDialog.value = true
 }
 
-watch(searchQuery, () => {
+function handleDialogClose(val) {
+  showInviteDialog.value = val
+  if (!val) {
+    editingUser.value = null
+    changePasswordMode.value = false
+  }
+}
+
+function onSearchDebounced() {
+  loadItems({ page: 1, itemsPerPage: itemsPerPage.value })
+}
+
+watch(filterQuery, () => {
   loadItems({ page: 1, itemsPerPage: itemsPerPage.value })
 })
 
@@ -38,35 +71,39 @@ const headers = ref([
   { title: 'Actions', key: 'actions', align: 'center', sortable: false },
 ])
 
-async function fetchCars({ page, itemsPerPage, sortBy }) {
-  const token = localStorage.getItem('access_token')
-  try {
-    const response = await axios.get('http://127.0.0.1:8000/users/', {
-      params: {
-        page,
-        page_size: itemsPerPage,
-        search: searchQuery.value
-      },
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    })
+function getColor(role) {
+  if (role == "TEAM_MEMBER") return 'error'
+  else if (role == "MANAGER") return 'warning'
+  else return 'success'
+}
 
+const fetchUsers = async (params) => {
+  const page = params.page || 1;
+  const limit = itemsPerPage.value;
+
+  params = {
+    ...params,
+    search: searchQuery.value,
+    filter: filterQuery.value,
+    limit: limit,
+    offset: (page - 1) * limit,
+  };
+
+  try {
+    const response = await userServices.getUserList(params);
     return {
       items: response.data.results,
       total: response.data.count,
-    }
-
+    };
   } catch (error) {
-    snackbarMessage.value = error.message
-    snackbar.value = true
-    return { items: [], total: 0 }
+    toastUtility.showError(error);
   }
-}
+};
+
 
 function loadItems({ page, itemsPerPage, sortBy }) {
   loading.value = true
-  fetchCars({ page, itemsPerPage, sortBy }).then(({ items, total }) => {
+  fetchUsers({ page, itemsPerPage, sortBy }).then(({ items, total }) => {
     serverItems.value = items.map((item, index) => ({
       ...item,
       sn: (page - 1) * itemsPerPage + index + 1,
@@ -76,58 +113,40 @@ function loadItems({ page, itemsPerPage, sortBy }) {
   })
 }
 
-function handleInviteSubmit(payload) {
-  console.log('Invited user:', payload)
-  const token = localStorage.getItem('access_token')
-  axios.post('http://127.0.0.1:8000/users/', payload, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  })
-    .then(() => {
-      loadItems({ page: 1, itemsPerPage: itemsPerPage.value })
-    })
-    .catch(error => {
-      snackbarMessage.value = "User already exists"
-      snackbar.value = true
-    })
+async function handleDeleteConfirm() {
+  try {
+    await userServices.deleteUser(userToDelete.value.id);
+    showDeleteDialog.value = false
+    toastUtility.showSuccess(`User has been deleted successfully.`);
+    userToDelete.value = null
+    loadItems({ page: 1, itemsPerPage: itemsPerPage.value })
+  } catch (error) {
+    toastUtility.showError(error);
+  }
 }
 
-function handleDeleteConfirm() {
-  const token = localStorage.getItem('access_token')
-  axios.delete(`http://127.0.0.1:8000/users/${userToDelete.value.id}/`, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  })
-    .then(() => {
-      showDeleteDialog.value = false
-      userToDelete.value = null
-      loadItems({ page: 1, itemsPerPage: itemsPerPage.value })
-    })
-    .catch(error => {
-      snackbarMessage.value = "User not found"
-      snackbar.value = true
-    })
+async function submitHandler() {
+  loadItems({ page: 1, itemsPerPage: itemsPerPage.value })
 }
-
-
 </script>
 
 <template>
-  <v-app>
-    <Header @toggle-drawer="drawer = !drawer"></Header>
-    <Sidebar :drawer="drawer" @update:drawer="drawer = $event" />
-
+  <v-app class="page-color">
     <v-main>
-      <div class="d-flex justify-center user-add-div">
+      <div class="d-flex justify-center">
         <div style="width: 75vw;" class="mt-5">
           <v-row>
-            <v-col cols="10">
-              <v-text-field width="50vw" v-model="searchQuery" variant="outlined" placeholder="Search user ...." />
+            <v-col cols="5">
+              <v-text-field width="30vw" v-model="searchQuery"
+                v-debounce:input="{ handler: onSearchDebounced, delay: 500 }" variant="outlined"
+                placeholder="Search user ...." />
+            </v-col>
+            <v-col cols="5">
+              <v-select clearable chips placeholder="Select Role" v-model="filterQuery" variant="outlined"
+                :items="userRoleChoices" item-title="value" item-value="key" multiple></v-select>
             </v-col>
             <v-col cols="2" class="mt-3">
-              <v-btn color="#3E4E3C" density="comfortable" @click="showInviteDialog = true">
+              <v-btn color="#3E4E3C" density="comfortable" v-if="isAllowed(['Admin'])" @click="showInviteDialog = true">
                 Add User
               </v-btn>
             </v-col>
@@ -136,58 +155,54 @@ function handleDeleteConfirm() {
       </div>
 
 
-      <div class="user-table-div d-flex justify-center align-center">
+      <div class="d-flex justify-center align-center">
         <v-card width="75vw" elevation="16">
-          <v-data-table-server class="user-table" v-model:items-per-page="itemsPerPage" :headers="headers"
+          <v-data-table-server height="60vh" class="user-table" v-model:items-per-page="itemsPerPage" :headers="headers"
             :items="serverItems" :items-length="totalItems" :loading="loading" item-value="name"
             @update:options="loadItems">
+
             <template #item.actions="{ item }">
-              <v-icon icon="mdi-pencil" size="small" color="#3E4E3C" class="me-2" @click="editUser(item)" />
-              <v-icon icon="mdi-delete" size="small" color="red" @click="deleteUser(item)" />
-            </template>
-            <!-- 
-            <template #item.actions="{ item }">
-              <v-menu offset-y>
+              <v-menu offset-y transition="scale-transition">
                 <template #activator="{ props }">
-                  <v-btn v-bind="props" icon size="small" variant="text" class="ma-0 pa-0">
-                    <v-icon>mdi-dots-vertical</v-icon>
+                  <v-btn v-bind="props" icon size="x-small" variant="text" class="ma-0 pa-0">
+                    <v-icon size="20">mdi-dots-vertical</v-icon>
                   </v-btn>
                 </template>
 
-                <v-list>
-                  <v-list-item @click="editUser(item)">
+                <v-list density="compact">
+                  <v-list-item v-if="isAllowed(['Admin'])" @click="editUser(item)">
                     <v-list-item-title>Edit</v-list-item-title>
                   </v-list-item>
 
-                  <v-list-item @click="deleteUser(item)">
+                  <v-list-item v-if="isAllowed(['Admin'])" @click="deleteUser(item)">
                     <v-list-item-title class="text-red">Delete</v-list-item-title>
                   </v-list-item>
+
+                  <v-list-item v-if="isAllowed(['Admin'])" @click="changeUserPassword(item)">
+                    <v-list-item-title>Change password</v-list-item-title>
+                  </v-list-item>
+
                 </v-list>
               </v-menu>
-            </template> -->
+            </template>
+
+            <template #item.role="{ item }">
+              <v-chip :border="`${getColor(item.role)} thin opacity-25`" :color="getColor(item.role)" :text="item.role"
+                size="x-small"></v-chip>
+            </template>
 
 
           </v-data-table-server>
         </v-card>
       </div>
-      <InviteUserDialog v-model="showInviteDialog" @submit="handleInviteSubmit" />
+      <InviteUserDialog v-model="showInviteDialog" :editUser="editingUser" :changePasswordMode="changePasswordMode"
+        @submit="submitHandler()" @update:modelValue="handleDialogClose" />
       <DeleteDialog v-model="showDeleteDialog" @submit="handleDeleteConfirm" />
-      <v-snackbar v-model="snackbar" color="error" timeout="4000">
-        {{ snackbarMessage }}
-      </v-snackbar>
     </v-main>
   </v-app>
 </template>
 
 <style scoped>
-.user-table-div {
-  background-color: #F5F3EF;
-}
-
-.user-add-div {
-  background-color: #F5F3EF;
-}
-
 :deep(.user-table thead th) {
   background-color: #3E4E3C;
   color: #F5F3EF;
