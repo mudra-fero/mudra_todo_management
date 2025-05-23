@@ -53,9 +53,9 @@ function handleDialogClose(val) {
   }
 }
 
-watch(searchQuery, () => {
+function onSearchDebounced() {
   loadItems({ page: 1, itemsPerPage: itemsPerPage.value })
-})
+}
 
 watch(filterQuery, () => {
   loadItems({ page: 1, itemsPerPage: itemsPerPage.value })
@@ -137,7 +137,9 @@ async function submitHandler() {
         <div style="width: 75vw;" class="mt-5">
           <v-row>
             <v-col cols="5">
-              <v-text-field width="30vw" v-model="searchQuery" variant="outlined" placeholder="Search user ...." />
+              <v-text-field width="30vw" v-model="searchQuery"
+                v-debounce:input="{ handler: onSearchDebounced, delay: 500 }" variant="outlined"
+                placeholder="Search user ...." />
             </v-col>
             <v-col cols="5">
               <v-select clearable chips placeholder="Select Role" v-model="filterQuery" variant="outlined"

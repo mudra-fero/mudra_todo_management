@@ -22,6 +22,7 @@ const isAllowed = (allowedRoles) => {
     <v-list dense nav>
       <v-list-item prepend-icon="mdi-view-dashboard" title="Tasks" :to="{ name: 'tasks' }" link />
       <v-list-item v-if="isAllowed(['Admin'])" prepend-icon="mdi-account" title="Users" :to="{ name: 'users' }" link />
+      <v-list-item prepend-icon="mdi-file-tree" title="Tasks (Options Api)" :to="{ name: 'tasksOptions' }" link />
     </v-list>
   </v-navigation-drawer>
 </template>

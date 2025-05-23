@@ -9,7 +9,7 @@ import * as directives from 'vuetify/directives';
 import '@mdi/font/css/materialdesignicons.css';
 import VueDatePicker from '@vuepic/vue-datepicker';
 import '@vuepic/vue-datepicker/dist/main.css';
-// import VueDebounce from 'vue-debounce'
+import debounce from './directives/debounce';
 
 const vuetify = createVuetify({
     components,
@@ -17,12 +17,8 @@ const vuetify = createVuetify({
 })
 
 const app = createApp(App)
-
+app.directive('debounce', debounce);
 app.use(vuetify);
 app.component('VueDatePicker', VueDatePicker);
-// app.use(VueDebounce, {
-//     lock: true,
-//     defaultTime: '500ms',
-//   })  
 app.use(router);
 app.mount('#app');

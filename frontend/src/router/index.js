@@ -50,6 +50,12 @@ const router = createRouter({
           component: () => import('@/pages/tasks/TaskDetail.vue'),
           meta: { requiresAuth: true, title: 'Task details' },
         },
+        {
+          path: '/task/options',
+          name: 'tasksOptions',
+          component: () => import('@/pages/task options/index.vue'),
+          meta: { requiresAuth: true, title: 'Task managment' },
+        }
 
       ]
     },

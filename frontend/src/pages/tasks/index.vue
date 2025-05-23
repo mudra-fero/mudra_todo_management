@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import { taskServices } from '@/services/tasks'
 import { userServices } from '@/services/users'
 import { toastUtility } from '@/utilities/toast-utility'
@@ -18,16 +18,18 @@ const loading = ref(false)
 const totalItems = ref(0)
 const currentPage = ref(1)
 const itemsPerPage = ref(10)
-const searchQuery = ref('')
-const filterpriorityQuery = ref([])
-const filterStatusQuery = ref([])
 const showInviteDialog = ref(false)
 const editingTask = ref(null)
 const isCardView = ref(false)
 const assignOrCollabType = ref('assign')
-const selectedDateRange = ref({
-  start_date: null,
-  end_date: null,
+const filters = ref({
+  search: '',
+  priority: [],
+  status: [],
+  dateRange: {
+    start_date: null,
+    end_date: null,
+  }
 })
 const currentUserRole = ref('')
 
@@ -89,13 +91,13 @@ const fetchTasks = async () => {
     const offset = (currentPage.value - 1) * limit;
 
     const response = await taskServices.getTaskList({
-      search: searchQuery.value,
-      priority: filterpriorityQuery.value,
-      lifecycle_stage: filterStatusQuery.value,
-      start_date: selectedDateRange.value.start_date,
-      end_date: selectedDateRange.value.end_date,
-      limit: limit,
-      offset: offset,
+      search: filters.value.search,
+      priority: filters.value.priority.join(','),
+      lifecycle_stage: filters.value.status.join(','),
+      start_date: filters.value.dateRange.start_date,
+      end_date: filters.value.dateRange.end_date,
+      limit,
+      offset,
     });
 
     tasks.value = response.data.results;
@@ -140,6 +142,11 @@ function handleItemsPerPageChange(newSize) {
   fetchTasks();
 }
 
+function onSearchDebounced() {
+  currentPage.value = 1
+  fetchTasks()
+}
+
 onMounted(async () => {
   fetchTasks()
   const response = await userServices.getCurrentUser()
@@ -157,14 +164,14 @@ const isAllowed = (allowedRoles) => {
       <v-container class="mt-3">
         <v-row>
           <v-col cols="4">
-            <v-select v-model="filterpriorityQuery" @update:modelValue="() => { currentPage = 1; fetchTasks(); }"
+            <v-select v-model="filters.priority" @update:modelValue="() => { currentPage = 1; fetchTasks(); }"
               density="compact" :items="taskPriorityChoices" item-title="value" item-value="key"
               placeholder="Filter by priority" label="Filter by priority" variant="outlined" multiple chips clearable
               dense />
           </v-col>
 
           <v-col cols="4">
-            <v-select v-model="filterStatusQuery" @update:modelValue="() => { currentPage = 1; fetchTasks(); }"
+            <v-select v-model="filters.status" @update:modelValue="() => { currentPage = 1; fetchTasks(); }"
               density="compact" :items="taskLifecycleStatusChoices" item-title="value" item-value="key"
               placeholder="Filter by task status" label="Filter by task status" variant="outlined" multiple chips
               clearable dense />
@@ -172,8 +179,8 @@ const isAllowed = (allowedRoles) => {
 
           <v-col cols="4">
             <DateRangePicker id="task-date" name="task-date" placeholder="Filter by date range"
-              @update:modelValue="val => { selectedDateRange = val; currentPage = 1; fetchTasks(); }"
-              label="Filter by date range" :isRequired="false" :modelValue="selectedDateRange" />
+              @update:modelValue="val => { filters.dateRange = val; currentPage = 1; fetchTasks(); }"
+              label="Filter by date range" :isRequired="false" :modelValue="filters.dateRange" />
           </v-col>
         </v-row>
 
@@ -194,7 +201,7 @@ const isAllowed = (allowedRoles) => {
 
               </v-col>
               <v-col cols="8">
-                <v-text-field v-model="searchQuery" @update:modelValue="() => { currentPage = 1; fetchTasks(); }"
+                <v-text-field v-model="filters.search" v-debounce:input="{ handler: onSearchDebounced, delay: 500 }"
                   variant="outlined" placeholder="Search task ...." />
               </v-col>
               <v-col cols="2" class="mt-3">

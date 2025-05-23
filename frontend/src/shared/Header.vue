@@ -42,7 +42,7 @@ const loadMoreNotifications = async () => {
     notifications.value.push(...newNotifications)
     offset.value += limit
 
-    unreadCount.value = notifications.value.filter(n => !n.is_read).length
+    unreadCount.value = res.data.unread_count
   } catch (error) {
     toastUtility.showError(error)
   } finally {
