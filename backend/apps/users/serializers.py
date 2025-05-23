@@ -94,7 +94,9 @@ class UserSerializer(serializers.ModelSerializer):
 
     def update(self, instance, validated_data):
         user_data = validated_data.pop("user", {})
-        user_serializer = CustomUserSerializer(instance=instance.user, data=user_data, partial=True)
+        user_serializer = CustomUserSerializer(
+            instance=instance.user, data=user_data, partial=True
+        )
         user_serializer.is_valid(raise_exception=True)
         user_serializer.save()
         for attr, value in validated_data.items():

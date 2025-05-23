@@ -152,7 +152,15 @@ class CommentSerializer(serializers.ModelSerializer):
     class Meta:
         model = Comment
         depth = 2
-        fields = ["id", "content", "author", "created", "created_humanized", "user_ids", "mentions"]
+        fields = [
+            "id",
+            "content",
+            "author",
+            "created",
+            "created_humanized",
+            "user_ids",
+            "mentions",
+        ]
         read_only_fields = ["created", "author", "id", "created_humanized", "mentions"]
         write_only_fields = ["user_ids"]
 
