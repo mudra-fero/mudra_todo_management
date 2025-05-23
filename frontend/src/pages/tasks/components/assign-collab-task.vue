@@ -72,24 +72,6 @@ function toggleSelectAll() {
     }
 }
 
-onMounted(async () => {
-    const currentUserRole = ref('')
-  const response = await userServices.getCurrentUser()
-  currentUserRole.value = userRoleChoices.find(c => c.key === response.data[0].role)?.value
-    const isAllowed = (allowedRoles) => {
-        return allowedRoles.includes(currentUserRole.value)
-    }
-
-    if (isAllowed(['Admin', 'Manager'])) {
-        try {
-            const res = await userServices.getAllUserList()
-            users.value = res.data
-        } catch (e) {
-            toastUtility.showError('Failed to load users.')
-        }
-    }
-})
-
 function closeDialog() {
     emit('update:modelValue', false)
 }
@@ -123,6 +105,23 @@ async function handleSubmit() {
         toastUtility.showError(err)
     }
 }
+onMounted(async () => {
+    const currentUserRole = ref('')
+    const response = await userServices.getCurrentUser()
+    currentUserRole.value = userRoleChoices.find(c => c.key === response.data[0].role)?.value
+    const isAllowed = (allowedRoles) => {
+        return allowedRoles.includes(currentUserRole.value)
+    }
+
+    if (isAllowed(['Admin', 'Manager'])) {
+        try {
+            const res = await userServices.getAllUserList()
+            users.value = res.data
+        } catch (e) {
+            toastUtility.showError('Failed to load users.')
+        }
+    }
+})
 </script>
 
 <template>

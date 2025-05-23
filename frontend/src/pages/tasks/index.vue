@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, watch } from 'vue'
+import { ref, onMounted } from 'vue'
 import { taskServices } from '@/services/tasks'
 import { userServices } from '@/services/users'
 import { toastUtility } from '@/utilities/toast-utility'

@@ -1,140 +1,147 @@
-<script setup>
-import { ref, reactive, onMounted, watch, computed } from 'vue'
+<script>
 import { userServices } from '@/services/users'
 import { taskServices } from '@/services/tasks'
 import { toastUtility } from '@/utilities/toast-utility'
 import { userRoleChoices } from '@/utilities/choice-filter-utility'
 
-const props = defineProps({
-    modelValue: Boolean,
-    taskObject: Object,
-    mode: {
-        type: String,
-        default: 'assign'
-    }
-})
-
-const emit = defineEmits(['update:modelValue', 'submit'])
-
-const isOpen = ref(props.modelValue)
-const users = ref([])
-
-const assignCollabForm = reactive({
-    assigned_to: null,
-    collaborated_with: []
-})
-
-watch(
-    () => props.taskObject,
-    (task) => {
-        if (!task) return;
-
-        assignCollabForm.assigned_to = users.value.find(
-            (user) => user.id === task?.assigned_to?.user?.id
-        ) || null;
-
-        assignCollabForm.collaborated_with = (task?.collaborated_with || [])
-            .map(collab => users.value.find(user => user.id === collab.user.id))
-            .filter(Boolean);
+export default {
+  props: {
+    modelValue: {
+      type: Boolean,
+      required: true
     },
-    { immediate: true }
-)
+    taskObject: {
+      type: Object,
+      required: true
+    },
+    type: {
+      type: String,
+      default: 'assign'
+    }
+  },
+  emits: ['update:modelValue', 'submit'],
+  data() {
+    return {
+      isOpen: this.modelValue,
+      users: [],
+      assignCollabForm: {
+        assigned_to: null,
+        collaborated_with: []
+      },
+      search: '',
+      currentUserRole: ''
+    }
+  },
+  computed: {
+    filteredUsers() {
+      if (!this.search) return this.users
+      return this.users.filter(user =>
+        user.username.toLowerCase().includes(this.search.toLowerCase())
+      )
+    },
+    isAllSelected() {
+      if (!this.filteredUsers.length) return false
+      return this.filteredUsers.every(user =>
+        this.assignCollabForm.collaborated_with.some(selected => selected.id === user.id)
+      )
+    }
+  },
+  watch: {
+    modelValue(val) {        
+      this.isOpen = val
+    },
+    isOpen(val) {        
+      this.$emit('update:modelValue', val)
+    },
+    taskObject: {
+      immediate: true,
+      handler(task) {
+        if (!task) return
+        this.assignCollabForm.assigned_to = this.users.find(
+          user => user.id === task?.assigned_to?.user?.id
+        ) || null
 
-watch(() => props.modelValue, (val) => isOpen.value = val)
-watch(isOpen, (val) => emit('update:modelValue', val))
+        this.assignCollabForm.collaborated_with = (task?.collaborated_with || [])
+          .map(collab => this.users.find(user => user.id === collab.user.id))
+          .filter(Boolean)
+      }
+    }
+  },
+  methods: {
+    async fetchUsers() {
+      try {
+        const response = await userServices.getCurrentUser()
+        this.currentUserRole = userRoleChoices.find(c => c.key === response.data[0].role)?.value
 
-const search = ref('')
-
-const filteredUsers = computed(() => {
-    if (!search.value) return users.value
-    return users.value.filter(user =>
-        user.username.toLowerCase().includes(search.value.toLowerCase())
-    )
-})
-
-const isAllSelected = computed(() => {
-    if (!filteredUsers.value.length) return false
-    return filteredUsers.value.every(user =>
-        assignCollabForm.collaborated_with.some(selected => selected.id === user.id)
-    )
-})
-
-function toggleSelectAll() {
-    if (isAllSelected.value) {
-        assignCollabForm.collaborated_with = assignCollabForm.collaborated_with.filter(
-            selected => !filteredUsers.value.some(user => user.id === selected.id)
+        if (['Admin', 'Manager'].includes(this.currentUserRole)) {
+          const res = await userServices.getAllUserList()
+          this.users = res.data
+        }
+      } catch (e) {
+        toastUtility.showError('Failed to load users.')
+      }
+    },
+    toggleSelectAll() {
+      if (this.isAllSelected) {
+        this.assignCollabForm.collaborated_with = this.assignCollabForm.collaborated_with.filter(
+          selected => !this.filteredUsers.some(user => user.id === selected.id)
         )
-    } else {
-        const newUsers = filteredUsers.value.filter(
-            user => !assignCollabForm.collaborated_with.some(selected => selected.id === user.id)
+      } else {
+        const newUsers = this.filteredUsers.filter(
+          user => !this.assignCollabForm.collaborated_with.some(selected => selected.id === user.id)
         )
-        assignCollabForm.collaborated_with = [...assignCollabForm.collaborated_with, ...newUsers]
-    }
-}
-
-onMounted(async () => {
-    const currentUserRole = ref('')
-  const response = await userServices.getCurrentUser()
-  currentUserRole.value = userRoleChoices.find(c => c.key === response.data[0].role)?.value
-    const isAllowed = (allowedRoles) => {
-        return allowedRoles.includes(currentUserRole.value)
-    }
-
-    if (isAllowed(['Admin', 'Manager'])) {
-        try {
-            const res = await userServices.getAllUserList()
-            users.value = res.data
-        } catch (e) {
-            toastUtility.showError('Failed to load users.')
+        this.assignCollabForm.collaborated_with = [...this.assignCollabForm.collaborated_with, ...newUsers]
+      }
+    },
+    resetForm() {
+      this.assignCollabForm.assigned_to = ''
+      this.assignCollabForm.collaborated_with = ''
+    },
+    closeDialog() {
+      this.$emit('update:modelValue', false)
+    },
+    formCancel() {
+      this.resetForm()
+      this.closeDialog()
+      this.$emit('update:modelValue', false)
+    },
+    async handleSubmit() {
+      try {
+        if (this.type === 'assign') {
+          await taskServices.assignTask(this.taskObject.id, {
+            user_id: this.assignCollabForm.assigned_to.id
+          })
+          toastUtility.showSuccess('Task Assigned successfully.')
+        } else if (this.type === 'collab') {
+          await taskServices.collaborateTask(this.taskObject.id, {
+            user_ids: this.assignCollabForm.collaborated_with.map(user => user.id)
+          })
+          toastUtility.showSuccess('Task collaborated successfully.')
         }
-    }
-})
-
-function closeDialog() {
-    emit('update:modelValue', false)
-}
-
-function resetForm() {
-    assignCollabForm.assigned_to = ''
-    assignCollabForm.collaborated_with = ''
-}
-function formCancel() {
-    resetForm()
-    closeDialog()
-    emit('update:modelValue', false)
-}
-async function handleSubmit() {
-    try {
-        if (props.mode === 'assign') {
-            await taskServices.assignTask(props.taskObject.id, {
-                "user_id": assignCollabForm.assigned_to.id
-            })
-            toastUtility.showSuccess('Task Assigned successfully.')
-        }
-        if (props.mode === 'collab') {
-            await taskServices.collaborateTask(props.taskObject.id, {
-                "user_ids": assignCollabForm.collaborated_with.map(user => user.id)
-            })
-            toastUtility.showSuccess('Task collaborated successfully.')
-        }
-        emit('submit')
-        closeDialog()
-    } catch (err) {
+        this.$emit('submit')
+        this.closeDialog()
+      } catch (err) {
         toastUtility.showError(err)
+      }
     }
+  },
+  mounted() {
+    this.fetchUsers()
+  }
 }
 </script>
 
 <template>
     <v-dialog v-model="isOpen" max-width="550" persistent>
+        
         <v-card style="background-color: #F5F3EF">
             <v-card-title class="text-h5 text-center">
-                {{ props.mode === 'assign' ? 'Assign Task' : 'Add Collaborators' }}
+                {{ type === 'assign' ? 'Assign Task' : 'Add Collaborators' }}
             </v-card-title>
             <v-divider></v-divider>
             <v-card-text>
                 <v-form @submit.prevent="handleSubmit">
-                    <v-select v-if="props.mode === 'assign'" v-model="assignCollabForm.assigned_to"
+                    <v-select v-if="type === 'assign'" v-model="assignCollabForm.assigned_to"
                         :items="filteredUsers" item-title="username" item-value="id" label="Assign To" return-object
                         variant="outlined" class="mb-4">
                         <template v-slot:prepend-item>
@@ -143,10 +150,9 @@ async function handleSubmit() {
                             <v-divider class="mt-2"></v-divider>
                         </template>
                     </v-select>
-                    <v-select v-if="props.mode === 'collab'" v-model="assignCollabForm.collaborated_with"
+                    <v-select v-if="type === 'collab'" v-model="assignCollabForm.collaborated_with"
                         :items="filteredUsers" item-title="username" item-value="id" label="Collaborators" multiple
                         return-object class="mb-4" variant="outlined">
-                        <!-- Search input inside dropdown -->
                         <template v-slot:prepend-item>
                             <v-text-field v-model="search" placeholder="Search..." density="compact" variant="plain"
                                 class="px-3" />

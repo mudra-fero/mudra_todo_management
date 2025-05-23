@@ -6,15 +6,15 @@ import { taskPriorityChoices, taskLifecycleStatusChoices } from '@/utilities/cho
 import { userRoleChoices } from '@/utilities/choice-filter-utility';
 import DateRangePicker from '@/shared/DateRangePicker.vue';
 import AddEditTaskDialog from './components/add-edit-task.vue';
-// import DeleteDialog from './components/delete-task.vue';
-// import AssignTaskDialog from './components/assign-collab-task.vue';
+import DeleteDialog from './components/delete-task.vue';
+import AssignTaskDialog from './components/assign-collab-task.vue';
 
 export default {
     components: {
         DateRangePicker,
         AddEditTaskDialog,
-        // DeleteDialog,
-        // AssignTaskDialog,
+        DeleteDialog,
+        AssignTaskDialog,
     },
     data() {
         return {
@@ -117,7 +117,7 @@ export default {
             this.editingTask = { ...task };
             this.showInviteDialog = true;
         },
-        openAssignDialog(task, type = 'assign') {
+        openAssignDialog(task, type = 'assign') {            
             this.selectedTask = { ...task };
             this.assignOrCollabType = type;
             this.showAssignDialog = true;
@@ -129,11 +129,10 @@ export default {
             await this.fetchTasks();
         },
         deleteUser(task) {
-            this.taskToDelete = task;
+            this.taskToDelete = task.id;
             this.showDeleteDialog = true;
         },
         async handleDeleteConfirm() {
-            this.showDeleteDialog = false;
             await this.fetchTasks();
         },
         goToTaskDetails(event, row) {
@@ -300,12 +299,10 @@ export default {
             <!-- Dialog Components -->
             <AddEditTaskDialog v-model="showInviteDialog" :editTask="editingTask" @submit="submitHandler" />
 
+            <AssignTaskDialog v-if="showAssignDialog" v-model="showAssignDialog" :taskObject="selectedTask" :type="assignOrCollabType" @submit="submitHandler" />
 
-            <!-- <AssignTaskDialog v-if="showAssignDialog" v-model="showAssignDialog" :task="selectedTask" -->
-            <!-- :type="assignOrCollabType" @submit="submitHandler" /> -->
-
-            <!-- <DeleteDialog v-if="showDeleteDialog" v-model="showDeleteDialog" :task="taskToDelete" -->
-            <!-- @confirm="handleDeleteConfirm" /> -->
+            <DeleteDialog v-if="showDeleteDialog" v-model="showDeleteDialog" :taskId="taskToDelete"
+                @submit="handleDeleteConfirm" />
         </v-main>
     </v-app>
 </template>

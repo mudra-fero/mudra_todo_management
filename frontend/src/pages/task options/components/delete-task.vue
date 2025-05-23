@@ -1,36 +1,47 @@
-<script setup>
+<script>
 import { ref, watch } from 'vue'
 import { taskServices } from '@/services/tasks'
 import { toastUtility } from '@/utilities/toast-utility'
 
-const props = defineProps({
-  modelValue: Boolean,
-  taskId: Number
-})
-
-const emit = defineEmits(['update:modelValue', 'submit'])
-
-const isOpen = ref(props.modelValue)
-
-watch(() => props.modelValue, (val) => {
-  isOpen.value = val
-})
-watch(isOpen, (val) => {
-  emit('update:modelValue', val)
-})
-
-function cancelDelete() {
-  emit('update:modelValue', false)
-}
-
-async function confirmDelete() {
-  try {
-    await taskServices.deleteTask(props.taskId)
-    toastUtility.showSuccess('Task deleted successfully')
-    emit('submit')
-    emit('update:modelValue', false)
-  } catch (error) {
-    toastUtility.showError('Failed to delete task')
+export default {
+  props: {
+    modelValue: {
+      type: Boolean,
+      required: true
+    },
+    taskId: {
+      type: Number,
+      required: true
+    }
+  },
+  emits: ['update:modelValue', 'submit'],
+  data() {
+    return {
+      isOpen: this.modelValue
+    }
+  },
+  watch: {
+    modelValue(val) {
+      this.isOpen = val
+    },
+    isOpen(val) {
+      this.$emit('update:modelValue', val)
+    }
+  },
+  methods: {
+    cancelDelete() {
+      this.$emit('update:modelValue', false)
+    },
+    async confirmDelete() {
+      try {
+        await taskServices.deleteTask(this.taskId)
+        toastUtility.showSuccess('Task deleted successfully')
+        this.$emit('submit')
+        this.$emit('update:modelValue', false)
+      } catch (error) {
+        toastUtility.showError('Failed to delete task')
+      }
+    }
   }
 }
 </script>
